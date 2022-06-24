@@ -12,12 +12,12 @@ public:
     std::vector<std::string> ScanSpecificCgroup(std::string CgrpSubsysRoot);
 
     // first: container root, second: child containers
-    std::map<std::string, std::vector<std::string>> Init();
+    std::map<std::string, std::vector<std::string>> GetCgrpListMap();
     void ShowAllCgroups();
     // first: cgroup root, second: child cgroups
     std::map<std::string, std::vector<std::string>> GetAllContainers();
 
-    Ecg_list() {}
+    Ecg_list();
     ~Ecg_list() {}
 
 private:

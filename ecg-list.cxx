@@ -58,7 +58,7 @@ static std::string Getoverlap(std::string str1, std::string str2)
     return str1.substr(0, i);
 }
 
-std::map<std::string, std::vector<std::string>> Ecg_list::Init()
+Ecg_list::Ecg_list()
 {
     auto cgrps = GetCgroupRoots();
 
@@ -68,7 +68,10 @@ std::map<std::string, std::vector<std::string>> Ecg_list::Init()
     for (auto item : cgrps) {
         m_cgrpListMap[item] = ScanSpecificCgroup(item);
     }
+}
 
+std::map<std::string, std::vector<std::string>> Ecg_list::GetCgrpListMap()
+{
     return m_cgrpListMap;
 }
 
@@ -143,16 +146,19 @@ std::map<std::string, std::vector<std::string>> Ecg_list::GetAllContainers()
         if (strstr(it->first.c_str(), "files")) {
             ScanContainersRoot(it->first, childGrpRoot);
             for (auto item : childGrpRoot) {
-                m_contListMap[item] = ScanSpecificCgroup(it->first + "/" + item);
+                std::vector<std::string> childGrp;
+                ScanContainersRoot(it->first + "/" + item, childGrp);
+                m_contListMap[item] = childGrp;
             }
             break;
         }
     }
 
     // std::cout << "Container root:" << std::endl;
-    // for (it = m_cgrpListMap.begin(); it != m_cgrpListMap.end(); it++) {
-    //     for (auto item : childGrpRoot) {
-    //         std::cout << it->first + "->" + item << std::endl;
+    // for (it = m_contListMap.begin(); it != m_contListMap.end(); it++) {
+    //     std::cout << it->first << std::endl;
+    //     for (auto item : it->second) {
+    //         std::cout << item << std::endl;
     //     }
     // }
 
@@ -166,9 +172,7 @@ std::map<std::string, std::vector<std::string>> Ecg_list::GetAllContainers()
 // {
 //     Ecg::Ecg_list ecg_list;
 
-//     ecg_list.Init();
-
-//     ecg_list.ShowAllCgroups();
+//     // ecg_list.ShowAllCgroups();
 //     ecg_list.GetAllContainers();
 
 //     return 0;
