@@ -77,7 +77,7 @@ void Ecg_Monitor::ScanMonitorRoot()
     m_monitorRoot.clear();
     for (item = cgrpListMap.begin(); it != cgrpListMap.end(); item++) {
         if (strstr(item->first.c_str(), "cpu")) {
-            std::cout << item->first << std::endl;
+            // std::cout << item->first << std::endl;
             for (it = contListMap.begin(); it != contListMap.end(); it++) {
                 m_monitorRoot.push_back(item->first + "/" + it->first);
             }
@@ -122,6 +122,11 @@ int Ecg_Monitor::StartMonitor()
 
     m_psiCfg->Init();
     ScanMonitorRoot();
+
+    if (m_monitorRoot.empty()) {
+        std::cout << "No available child cgroup monitor.\n";
+        return -1;
+    }
 
     for (auto it : m_monitorRoot) {
         MonitorCgroup(it + "/memory.pressure", PSI_TYPE_MEM, PRESSURE_HIGH);

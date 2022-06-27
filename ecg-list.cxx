@@ -1,3 +1,4 @@
+#include "ecg-base.h"
 #include "ecg-list.h"
 #include <iostream>
 #include <vector>
@@ -12,7 +13,8 @@
 namespace Ecg
 {
 
-std::vector<std::string> Ecg_list::GetCgroupRoots()
+std::vector<std::string>
+Ecg_list::GetCgroupRoots()
 {
     std::vector<std::string> mounts, cgrps;
     char *line = nullptr;
@@ -38,31 +40,18 @@ std::vector<std::string> Ecg_list::GetCgroupRoots()
             continue;
         }
 
-        cgrps.push_back(item.substr(CGRP_PREFIX_LEN, pos - CGRP_PREFIX_LEN));
+        cgrps.emplace_back(item.substr(CGRP_PREFIX_LEN, pos - CGRP_PREFIX_LEN));
     }
 
     fclose(pF);
     return cgrps;
 }
 
-// TODO: utils
-static std::string Getoverlap(std::string str1, std::string str2)
-{
-    unsigned int i = 0;
-    for (i = 0; i < str1.length() && i < str2.length(); i++) {
-        if (str1.at(i) != str2.at(i)) {
-            break;
-        }
-    }
-
-    return str1.substr(0, i);
-}
-
 Ecg_list::Ecg_list()
 {
     auto cgrps = GetCgroupRoots();
 
-    m_cgrpRootDir = Getoverlap(cgrps.at(0), cgrps.at(1));
+    m_cgrpRootDir = Ecg::Common_Utils::Getoverlap(cgrps.at(0), cgrps.at(1));
     m_cgrpRootDirLen = m_cgrpRootDir.length();
 
     for (auto item : cgrps) {
@@ -70,7 +59,8 @@ Ecg_list::Ecg_list()
     }
 }
 
-std::map<std::string, std::vector<std::string>> Ecg_list::GetCgrpListMap()
+std::map<std::string, std::vector<std::string>>
+Ecg_list::GetCgrpListMap()
 {
     return m_cgrpListMap;
 }
@@ -93,7 +83,7 @@ void Ecg_list::ScanChildGrp(std::string CgrpParent, std::vector<std::string> &v)
     DIR *pDir;
     struct dirent *d;
     if (!(pDir = opendir(CgrpParent.c_str()))) {
-        std::cout << "open " + CgrpParent + " error" << std::endl; 
+        std::cout << "open " + CgrpParent + " error" << std::endl;
         return;
     }
 
@@ -110,7 +100,9 @@ void Ecg_list::ScanChildGrp(std::string CgrpParent, std::vector<std::string> &v)
     closedir(pDir);
 }
 
-std::vector<std::string> Ecg_list::ScanSpecificCgroup(std::string CgrpSubsysRoot)
+std::vector<std::string>
+Ecg_list::ScanSpecificCgroup
+(std::string CgrpSubsysRoot)
 {
     std::vector<std::string> childGrps;
 
@@ -119,12 +111,13 @@ std::vector<std::string> Ecg_list::ScanSpecificCgroup(std::string CgrpSubsysRoot
     return childGrps;
 }
 
-void Ecg_list::ScanContainersRoot(std::string CgrpSubsys, std::vector<std::string> &v)
+void Ecg_list::ScanContainersRoot
+(std::string CgrpSubsys, std::vector<std::string> &v)
 {
     DIR *pDir;
     struct dirent *d;
     if (!(pDir = opendir(CgrpSubsys.c_str()))) {
-        std::cout << "open " + CgrpSubsys + " error" << std::endl; 
+        std::cout << "open " + CgrpSubsys + " error" << std::endl;
         return;
     }
 
@@ -137,7 +130,8 @@ void Ecg_list::ScanContainersRoot(std::string CgrpSubsys, std::vector<std::strin
     closedir(pDir);
 }
 
-std::map<std::string, std::vector<std::string>> Ecg_list::GetAllContainers()
+std::map<std::string, std::vector<std::string>>
+Ecg_list::GetAllContainers()
 {
     std::vector<std::string> childGrpRoot;
     std::map<std::string, std::vector<std::string>>::iterator it;
@@ -167,12 +161,11 @@ std::map<std::string, std::vector<std::string>> Ecg_list::GetAllContainers()
 
 } // namespace Ecg
 
-
 // int main(int argc, char **argv)
 // {
 //     Ecg::Ecg_list ecg_list;
 
-//     // ecg_list.ShowAllCgroups();
+//     ecg_list.ShowAllCgroups();
 //     ecg_list.GetAllContainers();
 
 //     return 0;

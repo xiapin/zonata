@@ -1,3 +1,4 @@
+#include "ecg-base.h"
 #include "ecg-ne.h"
 #include "ecg-list.h"
 
@@ -8,44 +9,6 @@
 
 namespace Ecg
 {
-
-// TODO: add to base file
-std::vector<std::string> readFileByLine(const std::string& path, char delim)
-{
-    std::ifstream f(path, std::ios::in);
-    if (!f.is_open()) {
-        return {};
-    }
-
-    std::string s;
-    std::vector<std::string> v;
-    while (std::getline(f, s, f.widen(delim))) {
-        v.push_back(std::move(s));
-    }
-
-    if (f.bad()) {
-        return {};
-    }
-
-    return v;
-}
-
-std::string readOnelineFile(const std::string& path)
-{
-    std::ifstream f(path, std::ios::in);
-    if (!f.is_open()) {
-        return {};
-    }
-
-    std::string s;
-    std::getline(f, s, f.widen('\n'));
-
-    if (f.bad()) {
-        return {};
-    }
-
-    return s;
-}
 
 class CPU_Metrics : public Ecg_Metrics {
 public:
@@ -79,16 +42,16 @@ public:
         v.emplace_back("# type " + get_metric_name(m_metricType));
 
         auto tmp = m_metricName + "{name=\"" + cpuSubsys + "\"} " +
-                    readOnelineFile(cpuSubsys + "/cpuacct.usage");
+                    Ecg::Fs_Utils::readFile(cpuSubsys + "/cpuacct.usage");
         v.emplace_back(tmp);
         for (it = allConts.begin(); it != allConts.end(); it++) {
             auto tmp = m_metricName + "{name=\"" + it->first + "\"} " +
-                    readOnelineFile(cpuSubsys + "/" + it->first + "/cpuacct.usage");
+                    Ecg::Fs_Utils::readFile(cpuSubsys + "/" + it->first + "/cpuacct.usage");
             v.emplace_back(tmp);
 
             for (auto iter : it->second) {
                 tmp = m_metricName + "{name=\"" + it->first + "/" + iter.substr(0, 4) + "\"} " +
-                    readOnelineFile(cpuSubsys + "/" + it->first + "/" + iter + "/cpuacct.usage");
+                    Ecg::Fs_Utils::readFile(cpuSubsys + "/" + it->first + "/" + iter + "/cpuacct.usage");
                 v.emplace_back(tmp);
             }
         }
@@ -98,13 +61,13 @@ public:
 };
 
 std::string
-Ecg_NodeExporter::NeGetMetricData(std::string metricName)
+Ecg_NodeExporter::NeGetMetricData
+(std::string metricName)
 {
     std::vector<std::string> dataVec;
     std::string dataStr = {};
 
     for (auto item : m_Metrics) {
-        std::cout << item->GetMetricName() << std::endl;
         if (!metricName.compare(item->GetMetricName())) {
             dataVec = item->GetMetricsData();
             break;
@@ -117,13 +80,13 @@ Ecg_NodeExporter::NeGetMetricData(std::string metricName)
 
     for (auto item : dataVec) {
         dataStr.append(item);
-        dataStr.append("\n");
     }
 
     return dataStr;
 }
 
-int Ecg_NodeExporter::RegisterMetric(Ecg_Metrics *metric)
+int Ecg_NodeExporter::RegisterMetric
+(Ecg_Metrics *metric)
 {
     if (metric == NULL)
     {
@@ -134,7 +97,8 @@ int Ecg_NodeExporter::RegisterMetric(Ecg_Metrics *metric)
     return 0;
 }
 
-int Ecg_NodeExporter::UnregisterMetric(Ecg_Metrics *metric)
+int Ecg_NodeExporter::UnregisterMetric
+(Ecg_Metrics *metric)
 {
     std::vector<Ecg_Metrics *>::iterator it;
     for (it = m_Metrics.begin(); it != m_Metrics.end(); it++) {
@@ -209,6 +173,7 @@ int Ecg_Server::MainLoop()
     evhtp_use_dynamic_threads(m_evHttp, NULL, NULL, 0, 0, 0, NULL);
     evhtp_bind_socket(m_evHttp, METRIC_DEFAULT_IP, m_port, BACK_LOG_SIZE);
 
+    std::cout << "Run ecg node exporter on localhost:" << m_port << std::endl;
     event_base_loop(m_evBase, 0);
 
     return 0;
@@ -224,7 +189,7 @@ int main(int argc, char **argv)
     Ecg::CPU_Metrics *cpuMetrics = new Ecg::CPU_Metrics();
     cpuMetrics->Init("cpu_usage", "current cpu_usage", Ecg::COUNTER);
     ecgNe->RegisterMetric(cpuMetrics);
-    
+
     ecgServer.Start();
 
     while (1) {
