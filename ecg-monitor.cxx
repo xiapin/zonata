@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
+#include <sys/eventfd.h>
 
 namespace Ecg {
 
@@ -115,8 +117,15 @@ int Ecg_Monitor::MonitorCgroup(std::string cgrpPath, PSI_TYPE type, PRESSURE_LEV
     return m_ep->Epoll_AddEvent(pollData);;
 }
 
-int Ecg_Monitor::StartMonitor()
+int Ecg_Monitor::StartPSIMonitor()
 {
+    if (m_monitorRoot.empty()) {
+        ScanMonitorRoot();
+        if (m_monitorRoot.empty()) {
+            return 0;
+        }
+    }
+
     m_ep = new Epoll_Type(1024);
     m_psiCfg = new PsiConfig();
 
@@ -136,6 +145,56 @@ int Ecg_Monitor::StartMonitor()
 
     m_ep->Epoll_Loop();
 
+    return 0;
+}
+
+int Ecg_Monitor::StartEventMonitor(std::string controlFile, std::string args)
+{
+    char line[LINE_MAX];
+   
+    int cFd = open(controlFile.c_str(), O_RDONLY);
+    if (cFd < 0) {
+        std::cout << "Open " + controlFile + " error\n";
+        return -1;
+    }
+
+    int pos = controlFile.rfind("/");
+    std::string eventFile = controlFile.substr(0, pos) + "/cgroup.event_control";
+    int eFd = open(eventFile.c_str(), O_WRONLY);
+    if (eFd < 0) {
+        std::cout << "Open " + eventFile + " error\n";
+        close(cFd);
+        return -1;
+    }
+
+    int epFd = eventfd(0, 0);
+
+    // std::string eventStr = std::to_string(epFd) + std::to_string(cFd) + args;
+    snprintf(line, LINE_MAX, "%d %d %s", epFd, cFd, args.c_str());
+    // if (write(epFd, eventStr.c_str(), eventStr.length()) < 0) {
+    if (write(eFd, line, strlen(line) + 1) < 0) {
+        std::cout << "Write " << line << " error\n";
+        close(cFd);
+        close(eFd);
+        return -1;
+    }
+
+    while (1) {
+        uint64_t result;
+        int ret = read(epFd, &result, sizeof(result));
+        if (ret == -1) {
+            if (errno == EINTR)
+                continue;
+            std::cout << "Cannot read from eventfd\n";
+            break;
+        }
+
+        std::cout << controlFile + " crossed " + args << std::endl;
+    }
+
+    close(epFd);
+    close(cFd);
+    close(eFd);
     return 0;
 }
 
@@ -174,10 +233,13 @@ void PsiConfig::Init()
 
 int main(int argc, char **argv)
 {
+    if (argc != 3)
+        return 1;
     Ecg::Ecg_Monitor ecgMonitor;
 
-    ecgMonitor.ScanMonitorRoot();
-    ecgMonitor.StartMonitor();
+    // TODO: Add /root/kernel/tools/cgroup/cgroup_event_listener
+    ecgMonitor.StartEventMonitor(argv[1], argv[2]);
+    // ecgMonitor.StartPSIMonitor();
 
     return 0;
 }

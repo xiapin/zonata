@@ -1,3 +1,4 @@
+#include "ecg-list.h"
 #include "ecg-base.h"
 #include "ecg-control.h"
 #include <unistd.h>
@@ -37,7 +38,6 @@ Ecg_Control::Ecg_CgrpGet(std::string &cgrp)
         return {};
     }
 
-    // TODO: dir check
     std::map<std::string, std::vector<std::string>> map;
     DIR *pDir;
     struct dirent *d;
@@ -58,14 +58,14 @@ Ecg_Control::Ecg_CgrpGet(std::string &cgrp)
 }
 
 int Ecg_Control::Ecg_CgrpCreate
-(std::string parentCgrp, std::string name)
+(std::string cgrp)
 {
-    if (access(parentCgrp.c_str(), F_OK)) {
-        std::cout << parentCgrp + " not exist\n";
+    if (access(cgrp.c_str(), F_OK)) {
+        std::cout << cgrp + " not exist\n";
         return -1;
     }
 
-    return mkdir((parentCgrp + "/" + name).c_str(), 0664);
+    return mkdir(cgrp.c_str(), 0664);
 }
 
 // Delete childgroup
@@ -92,31 +92,89 @@ int Ecg_Control::Ecg_CgrpDelete(std::string cgrpName)
     return rmdir(cgrpName.c_str());
 }
 
-}; // namespace Ecg
+void Ecg_Control::Show(std::string &unUsed)
+{
+    Ecg::Ecg_list ecgList;
 
-static const char *short_opts = "hc:o:l:s:p:";
+    ecgList.ShowAllCgroups();
+}
+
+void Ecg_Control::Help(std::string &unUsed)
+{
+    std::cout << "usage: ecg-control [<flags>]\n\n"
+                "-l show all cgroups\n"
+                "-s cgrpfile=new value, set cgroup controller, eg: -s /cgroup/files/docker/files.limit=1\n"
+                "-g cgrp, get cgroup content, eg: -g /cgroup/files/docker\n"
+                "-c cgrp, create new cgroup, eg: -c /cgroup/files/test\n"
+                "-d cgrp, delete exist cgroup and child cgroup, eg: -d /cgroup/files/test\n";
+}
+
+void Ecg_Control::Set(std::string &optArg)
+{
+    std::cout << "Set " << optArg << std::endl;
+
+    int pos = optArg.find('=');
+    if (pos == optArg.npos) {
+        std::cerr << "syntax error, use -s cgrp_control=value.\n";
+        return;
+    }
+    std::string cgrp = optArg.substr(0, pos);
+    std::string value = optArg.substr(pos, optArg.length());
+
+    std::cout << "cgrp: " + cgrp + " value: " + value << std::endl;
+    return;
+}
+
+void Ecg_Control::Get(std::string &optArg)
+{
+    auto m = Ecg::Ecg_Control::Ecg_CgrpGet(optArg);
+    std::map<std::string, std::vector<std::string>>::iterator it;
+    for (it = m.begin(); it != m.end(); it++) {
+        std::cout << it->first + ":\n";
+        Ecg::Common_Utils::PrintVectorString("\t" , it->second);
+    }
+    std::cout << std::endl;
+}
+
+void Ecg_Control::Create(std::string &optArg)
+{
+    std::cout << "Create " << optArg << std::endl;
+    Ecg_CgrpCreate(optArg);
+}
+
+void Ecg_Control::Delete(std::string &optArg)
+{
+    std::cout << "Delete " << optArg << std::endl;
+    Ecg_CgrpDelete(optArg);
+}
+
+}; // namespace Ecg
 
 int main(int argc, char **argv)
 {
-    if (argc < 3) {
+    if (argc < 2) {
         std::cout << "usage " << argv[0] << " cgroupfile value\n";
         return 1;
     }
 
-    std::string cgrp = argv[1];
-    std::string newValue = argv[2];
+    std::string shortOpt = "hs:g:c:d:l";
+    Ecg::Opt_Parser optParser(shortOpt);
 
-    // Ecg::Ecg_Control::Ecg_CgrpSet(cgrp, newValue);
+    optParser.Regist_Handler('l', Ecg::Ecg_Control::Show);
+    optParser.Regist_Handler('h', Ecg::Ecg_Control::Help); 
+    optParser.Regist_Handler('s', Ecg::Ecg_Control::Set);
+    optParser.Regist_Handler('g', Ecg::Ecg_Control::Get);
+    optParser.Regist_Handler('c', Ecg::Ecg_Control::Create);
+    optParser.Regist_Handler('d', Ecg::Ecg_Control::Delete);
 
-    auto m = Ecg::Ecg_Control::Ecg_CgrpGet(cgrp);
-    std::map<std::string, std::vector<std::string>>::iterator it;
-    for (it = m.begin(); it != m.end(); it++) {
-        std::cout << it->first + ":";
-        Ecg::Common_Utils::PrintVectorString("\t" , it->second);
-    }
-    std::cout << std::endl;
+    optParser.Start_Parse(argc, argv);
 
-    // Ecg::Ecg_Control::Ecg_CgrpDelete(cgrp);
+    // std::string cgrp = argv[1];
+    // std::string newValue = argv[2];
+
+    // // Ecg::Ecg_Control::Ecg_CgrpSet(cgrp, newValue);
+
+    // // Ecg::Ecg_Control::Ecg_CgrpDelete(cgrp);
 
     return 0;
 }

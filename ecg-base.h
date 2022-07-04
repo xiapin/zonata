@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 #include <getopt.h>
+#include <map>
 
 #pragma once
 
@@ -28,7 +29,7 @@ public:
     ~Common_Utils() {}
 };
 
-typedef void (* OptHandlerDF)(std::string optArg);
+typedef void (* OptHandlerDF)(std::string &optArg);
 
 class Opt_Parser {
 public:
@@ -36,7 +37,7 @@ public:
     int Start_Parse(int argc, char **argv);
 
     Opt_Parser(std::string &shortOpt) :
-        m_shortOpts(optStr) {}
+        m_shortOpts(shortOpt) {}
     ~Opt_Parser() {}
 
 private:

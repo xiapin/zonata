@@ -161,12 +161,14 @@ Ecg_list::GetAllContainers()
 
 } // namespace Ecg
 
-// int main(int argc, char **argv)
-// {
-//     Ecg::Ecg_list ecg_list;
+#ifdef ECG_LIST_EXE
+int main(int argc, char **argv)
+{
+    Ecg::Ecg_list ecg_list;
 
-//     ecg_list.ShowAllCgroups();
-//     ecg_list.GetAllContainers();
+    ecg_list.ShowAllCgroups();
+    ecg_list.GetAllContainers();
 
-//     return 0;
-// }
+    return 0;
+}
+#endif

@@ -90,13 +90,14 @@ private:
 
 class Ecg_Monitor {
 public:
-    void ScanMonitorRoot();
-    int StartMonitor();
+    int StartPSIMonitor(); // base on psi control file
+    int StartEventMonitor(std::string controlFile, std::string args); // base on event control file
 
     Ecg_Monitor() { }
     ~Ecg_Monitor() { }
 
 private:
+    void ScanMonitorRoot();
     int MonitorCgroup(std::string cgrpPath, PSI_TYPE type, PRESSURE_LEVEL level);
     std::vector<std::string> m_monitorRoot;
     Ecg::Epoll_Type *m_ep;

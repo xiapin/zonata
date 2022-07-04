@@ -66,26 +66,71 @@ void Common_Utils::PrintVectorString
     }
 }
 
-int Regist_Handler(char shortOpt, OptHandlerDF optHandler)
+int Opt_Parser::Regist_Handler(char shortOpt, OptHandlerDF optHandler)
 {
+    m_handlers[shortOpt] = optHandler;
     return 0;
 }
 
-int Start_Parse(int argc, char **argv)
+int Opt_Parser::Start_Parse(int argc, char **argv)
 {
+    int ch;
+    std::map<char, OptHandlerDF>::iterator it;
+    std::string optArg;
+
+    while ((ch = getopt(argc, argv, m_shortOpts.c_str())) != -1) {
+        it = m_handlers.find(ch);
+        if (it == m_handlers.end()) {
+            continue;
+        }
+
+        if (optarg != NULL) {
+            optArg = std::move(optarg);
+        }
+
+        it->second(optArg);
+    }
+
     return 0;
 }
 
 }; // namespace Ecg
 
-// int main(void)
-// {
-//     std::string path = "/sys/fs/cgroup/cpuacct/cpuacct.usage";
 
-//     std::cout << Ecg::Fs_Utils::readFile(path);
-//     // for (auto item : Ecg::Fs_Utils::readFileLine(path)) {
-//     //     std::cout << item << std::endl;
-//     // }
+#ifdef ECG_BASE_TEST
+static void A(std::string &arg)
+{
+    std::cout << "A " << arg << std::endl;
+}
 
-//     return 0;
-// }
+static void B(std::string &arg)
+{
+    std::cout << "B " << arg << std::endl;
+}
+
+static void C(std::string &arg)
+{
+    std::cout << "C " << std::endl;
+}
+
+int main(int argc, char **argv)
+{
+    // std::string path = "/sys/fs/cgroup/cpuacct/cpuacct.usage";
+
+    // std::cout << Ecg::Fs_Utils::readFile(path);
+    // for (auto item : Ecg::Fs_Utils::readFileLine(path)) {
+    //     std::cout << item << std::endl;
+    // }
+
+    std::string shortOpt = "a:b:c";
+    Ecg::Opt_Parser optParser(shortOpt);
+
+    optParser.Regist_Handler('a', A);
+    optParser.Regist_Handler('b', B);
+    optParser.Regist_Handler('c', C);
+
+    optParser.Start_Parse(argc, argv);
+
+    return 0;
+}
+#endif
