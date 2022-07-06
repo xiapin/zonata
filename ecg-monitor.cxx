@@ -10,7 +10,7 @@
 
 namespace Ecg {
 
-int Epoll_Type::Epoll_AddEvent(Poll_Data *data)
+int Epoll_Type::Epoll_AddEvent(Poll_Data *data, EPOLL_EVENTS events)
 {
     struct epoll_event event = {0};
 
@@ -22,7 +22,8 @@ int Epoll_Type::Epoll_AddEvent(Poll_Data *data)
         m_epollFd = epoll_create(m_maxEvent);
     }
 
-    event.events = EPOLLPRI;
+    // event.events = EPOLLPRI | EPOLLIN;
+    event.events = events;
     event.data.ptr = (void *)data;
     epoll_ctl(m_epollFd, EPOLL_CTL_ADD, data->GetFd(), &event);
 
@@ -114,15 +115,15 @@ int Ecg_Monitor::MonitorCgroup(std::string cgrpPath, PSI_TYPE type, PRESSURE_LEV
     }
 
     Poll_Data *pollData = new Poll_Data(fd, type, level, cgrpPath);
-    return m_ep->Epoll_AddEvent(pollData);;
+    return m_ep->Epoll_AddEvent(pollData, EPOLLPRI);;
 }
 
-int Ecg_Monitor::StartPSIMonitor()
+int Ecg_Monitor::Init()
 {
     if (m_monitorRoot.empty()) {
         ScanMonitorRoot();
         if (m_monitorRoot.empty()) {
-            return 0;
+            return 0; // no available cgroup.
         }
     }
 
@@ -137,18 +138,26 @@ int Ecg_Monitor::StartPSIMonitor()
         return -1;
     }
 
+    return 0;
+}
+
+void Ecg_Monitor::StartMonitor()
+{
+    m_ep->Epoll_Loop();
+}
+
+int Ecg_Monitor::AddPSIMonitor()
+{
     for (auto it : m_monitorRoot) {
         MonitorCgroup(it + "/memory.pressure", PSI_TYPE_MEM, PRESSURE_HIGH);
         MonitorCgroup(it + "/io.pressure", PSI_TYPE_IO, PRESSURE_HIGH);
         MonitorCgroup(it + "/cpu.pressure", PSI_TYPE_CPU, PRESSURE_HIGH);
     }
 
-    m_ep->Epoll_Loop();
-
     return 0;
 }
 
-int Ecg_Monitor::StartEventMonitor(std::string controlFile, std::string args)
+int Ecg_Monitor::AddEventMonitor(std::string controlFile, std::string args)
 {
     char line[LINE_MAX];
    
@@ -179,22 +188,9 @@ int Ecg_Monitor::StartEventMonitor(std::string controlFile, std::string args)
         return -1;
     }
 
-    while (1) {
-        uint64_t result;
-        int ret = read(epFd, &result, sizeof(result));
-        if (ret == -1) {
-            if (errno == EINTR)
-                continue;
-            std::cout << "Cannot read from eventfd\n";
-            break;
-        }
+    Poll_Data *pollData = new Poll_Data(epFd, PSI_TYPE_MEM, PRESSURE_MID, controlFile);
+    m_ep->Epoll_AddEvent(pollData, EPOLLIN);
 
-        std::cout << controlFile + " crossed " + args << std::endl;
-    }
-
-    close(epFd);
-    close(cFd);
-    close(eFd);
     return 0;
 }
 
@@ -237,9 +233,18 @@ int main(int argc, char **argv)
         return 1;
     Ecg::Ecg_Monitor ecgMonitor;
 
-    // TODO: Add /root/kernel/tools/cgroup/cgroup_event_listener
-    ecgMonitor.StartEventMonitor(argv[1], argv[2]);
-    // ecgMonitor.StartPSIMonitor();
+    if (ecgMonitor.Init()) {
+        std::cout << "Init failed\n" ;
+        return 0;
+    }
+
+    // memory/docker/<container_id>/memory.usage_in_bytes 104857600
+    // memory/docker/<container_id>/memory.oom_control 1
+    // memory/docker/<container_id>/memory.pressure_level level(low/medium/critical),mode(default/hierarchy/local)
+    // memory/docker/<container_id>/memory.memsw.usage_in_bytes 104857600
+    ecgMonitor.AddEventMonitor(argv[1], argv[2]);
+    // ecgMonitor.AddPSIMonitor();
+    ecgMonitor.StartMonitor();
 
     return 0;
 }
