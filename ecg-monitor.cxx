@@ -243,7 +243,7 @@ int main(int argc, char **argv)
     // memory/docker/<container_id>/memory.pressure_level level(low/medium/critical),mode(default/hierarchy/local)
     // memory/docker/<container_id>/memory.memsw.usage_in_bytes 104857600
     ecgMonitor.AddEventMonitor(argv[1], argv[2]);
-    // ecgMonitor.AddPSIMonitor();
+    ecgMonitor.AddPSIMonitor();
     ecgMonitor.StartMonitor();
 
     return 0;

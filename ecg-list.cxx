@@ -5,8 +5,6 @@
 #include <string.h>
 #include <dirent.h>
 
-#include <ncurses.h>
-
 #define CGROUP_PREFIX       "cgroup"
 #define CGRP_PREFIX_LEN     (7)
 
@@ -166,8 +164,12 @@ int main(int argc, char **argv)
 {
     Ecg::Ecg_list ecg_list;
 
-    ecg_list.ShowAllCgroups();
-    ecg_list.GetAllContainers();
+    // ecg_list.ShowAllCgroups();
+    // ecg_list.GetAllContainers();
+
+    tool_ncurses ncurses;
+
+    ncurses.info_ncurses(ecg_list.GetCgrpListMap());
 
     return 0;
 }

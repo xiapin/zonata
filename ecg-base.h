@@ -2,6 +2,7 @@
 #include <vector>
 #include <getopt.h>
 #include <map>
+#include <ncurses.h>
 
 #pragma once
 
@@ -43,6 +44,36 @@ public:
 private:
     std::string m_shortOpts;
     std::map<char, OptHandlerDF> m_handlers;
+};
+
+class Curses_Win {
+public:
+    int CW_Init(std::string bkStr);
+    int CW_SetContent(std::vector<std::string> &v);
+    // int CW_SetContent(std::string &str);
+    int CW_SetContent(std::map<std::string, std::vector<std::string>> &m);
+    int CW_Draw(std::string selected);
+    int CW_BindWin(Curses_Win *win, bool sub);
+
+    Curses_Win() {}
+    ~Curses_Win() {}
+
+private:
+    int CW_Exceptoin();
+    int CW_CreateBkd(std::string bkStr);
+
+        // int CW_Draw(std::string str);
+    int CW_Draw(unsigned curPage);
+    int CW_Scroll(unsigned curPage, int size);
+    int CW_Delete(WINDOW **win, int count);
+
+    std::vector<std::string> m_vContent;
+    std::map<std::string, std::vector<std::string>> m_mapContent;
+    Curses_Win *m_subWin, *m_belongWin;
+    WINDOW **m_win;
+    WINDOW *m_menu;
+    WINDOW *m_shadow;
+    unsigned int m_row, m_col, m_lSize, m_wSize, m_totalPages;
 };
 
 };

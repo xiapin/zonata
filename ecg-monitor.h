@@ -62,7 +62,7 @@ public:
     m_maxEvent(maxEvent), m_epollFd(0), m_epollEvent(NULL) {  };
     ~Epoll_Type() { if (m_epollEvent) free(m_epollEvent); };
 
-    int Epoll_AddEvent(Poll_Data *data);
+    int Epoll_AddEvent(Poll_Data *data, EPOLL_EVENTS events);
     int Epoll_DelEvent(Poll_Data &data);
     int Epoll_Loop();
 
@@ -90,8 +90,10 @@ private:
 
 class Ecg_Monitor {
 public:
-    int StartPSIMonitor(); // base on psi control file
-    int StartEventMonitor(std::string controlFile, std::string args); // base on event control file
+    int Init();
+    int AddPSIMonitor(); // base on psi control file
+    int AddEventMonitor(std::string controlFile, std::string args); // base on event control file
+    void StartMonitor();
 
     Ecg_Monitor() { }
     ~Ecg_Monitor() { }
