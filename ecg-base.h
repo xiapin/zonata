@@ -46,26 +46,35 @@ private:
     std::map<char, OptHandlerDF> m_handlers;
 };
 
+class Curses_Content {
+public:
+    virtual ~Curses_Content() {}
+    virtual std::vector<std::string> GetContent(std::string selected) = 0;
+};
+
 class Curses_Win {
 public:
     int CW_Init(std::string bkStr);
-    int CW_SetContent(std::vector<std::string> &v);
-    int CW_SetContent(std::map<std::string, std::vector<std::string>> &m);
     int CW_Draw(std::string selected);
     int CW_BindWin(Curses_Win *win, bool sub);
 
-    Curses_Win() {}
+    Curses_Win(Curses_Content *cc) : m_cursesContent(cc), m_subWin(NULL),
+            m_belongWin(NULL), m_win(NULL), m_menu(NULL),
+            m_shadow(NULL) {}
     ~Curses_Win() {}
 
 private:
     int CW_Exceptoin();
     int CW_CreateBkd(std::string bkStr);
 
+    void CW_FlushContent(std::string selected);
+
     int CW_SetSubWinContent(std::string selected); // for subwindow
-    int CW_Draw(unsigned curPage);
-    int CW_Scroll(unsigned curPage, int size);
+    int CW_DrawPage(unsigned curPage);
+    int CW_Scroll(unsigned curPage, unsigned size);
     int CW_Delete(WINDOW **win, int count);
 
+    Curses_Content *m_cursesContent;
     std::vector<std::string> m_vContent;
     std::map<std::string, std::vector<std::string>> m_mapContent;
     Curses_Win *m_subWin, *m_belongWin;

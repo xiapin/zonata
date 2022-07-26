@@ -157,45 +157,26 @@ int Curses_Win::CW_Init(std::string bkStr)
     return 0;
 }
 
-int Curses_Win::CW_SetContent(std::vector<std::string> &v)
+void Curses_Win::CW_FlushContent(std::string selected)
 {
-    m_vContent = std::move(v);
-
-    m_totalPages = ceil(m_vContent.size()/(m_row - 10.0)) - 1;
-    return 0;
-}
-
-int Curses_Win::CW_SetContent
-(std::map<std::string, std::vector<std::string>> &m)
-{
-    m_mapContent = std::move(m);
-
-    return 0;
-}
-
-int Curses_Win::CW_SetSubWinContent(std::string selected)
-{
-    if (!m_mapContent.empty() && !selected.empty()) {
-        auto it = m_mapContent.find(selected);
-        if (it != m_mapContent.end()) {
-            CW_SetContent(it->second);
-            return CW_Draw(0);
-        }
+    if (!m_cursesContent) {
+        mvprintw(3, 8, "Content Not Set Yet!");
+        abort();
     }
 
-    return 0;
+    if (selected.empty()) {
+        return;
+    }
+
+    m_vContent = std::move(m_cursesContent->GetContent(selected));
+    m_totalPages = ceil(m_vContent.size()/(m_row - 10.0)) - 1;
 }
 
 int Curses_Win::CW_Draw(std::string selected)
 {
-    // Priority treatment if m_vContent is Dynamic
-    if (!m_mapContent.empty()) {
-        CW_SetSubWinContent(selected);
-        return CW_Draw(0);
-    } else if (!m_vContent.empty()) {
-        return CW_Draw(0);
-    }
+    CW_FlushContent(selected);
 
+    CW_DrawPage(0);
     std::cout << "No content\n" << std::endl;
     return -1;
 }
@@ -211,12 +192,7 @@ int Curses_Win::CW_BindWin(Curses_Win *win, bool sub)
     return 0;
 }
 
-// int Curses_Win::CW_Draw(std::string str)
-// {
-//     return 0;
-// }
-
-int Curses_Win::CW_Scroll(unsigned curPage, int size)
+int Curses_Win::CW_Scroll(unsigned curPage, unsigned size)
 {
     unsigned selected = 0;
     mvprintw(3, 8, "Remain pages(%d/%d)", curPage, m_totalPages); // TODO
@@ -250,13 +226,13 @@ int Curses_Win::CW_Scroll(unsigned curPage, int size)
             if (curPage > m_totalPages || curPage < 0)
                 curPage = 0;
 
-            return CW_Draw(curPage);
+            return CW_DrawPage(curPage);
         } else if (key == ENTER && m_subWin) {
             m_subWin->CW_BindWin(this, false);
             return m_subWin->CW_Draw(m_vContent.at(curPage * m_lSize + selected));
         } else if (key == ESCAPE) {
             if (m_belongWin)
-                return m_belongWin->CW_Draw("null");
+                return m_belongWin->CW_Draw("");
             CW_Delete(m_win, m_lSize);
             exit(0);
         } else {
@@ -267,7 +243,7 @@ int Curses_Win::CW_Scroll(unsigned curPage, int size)
     return 0;
 }
 
-int Curses_Win::CW_Draw(unsigned int curPage)
+int Curses_Win::CW_DrawPage(unsigned int curPage)
 {
     unsigned int i, j, vecStart;
 
@@ -307,68 +283,61 @@ int Curses_Win::CW_Delete(WINDOW **win, int count)
 
 }; // namespace Ecg
 
+// Test Code
+namespace Ecg {
 
-#ifdef ECG_BASE_TEST
-// static void A(std::string &arg)
-// {
-//     std::cout << "A " << arg << std::endl;
-// }
+class Win_CgrpRoot : public Curses_Content {
+public:
+    Win_CgrpRoot() {}
+    virtual ~Win_CgrpRoot() {}
 
-// static void B(std::string &arg)
-// {
-//     std::cout << "B " << arg << std::endl;
-// }
+    std::vector<std::string> GetContent(std::string selected)
+    {
+        Ecg::Ecg_list ecgList;
+        return ecgList.GetCgroupRoots();
+    }
+};
 
-// static void C(std::string &arg)
-// {
-//     std::cout << "C " << std::endl;
-// }
+class Win_CgrpSub : public Curses_Content {
+public:
+    Win_CgrpSub() {}
+    virtual ~Win_CgrpSub() {}
 
+    std::vector<std::string> GetContent(std::string selected)
+    {
+        Ecg::Ecg_list ecglist;
+       return ecglist.ScanSpecificCgroup(selected);
+    }
+};
+
+};
+
+// #ifdef ECG_BASE_TEST
+#if 1
 int main(int argc, char **argv)
 {
-    // std::string path = "/sys/fs/cgroup/cpuacct/cpuacct.usage";
-
-    // std::cout << Ecg::Fs_Utils::readFile(path);
-    // for (auto item : Ecg::Fs_Utils::readFileLine(path)) {
-    //     std::cout << item << std::endl;
-    // }
-
-    // std::string shortOpt = "a:b:c";
-    // Ecg::Opt_Parser optParser(shortOpt);
-
-    // optParser.Regist_Handler('a', A);
-    // optParser.Regist_Handler('b', B);
-    // optParser.Regist_Handler('c', C);
-
-    // optParser.Start_Parse(argc, argv);
-
     std::vector<std::string> v;
     for (auto i = 0; i < 100; i++) {
         v.emplace_back(std::to_string(i));
     }
 
-    Ecg::Ecg_list ecgList;
-    Ecg::Curses_Win cw;
-    Ecg::Curses_Win *subWin = new Ecg::Curses_Win;
-    Ecg::Curses_Win *subsubWin = new Ecg::Curses_Win;
+    Ecg::Win_CgrpRoot *cgrpRoot = new Ecg::Win_CgrpRoot;
+    Ecg::Win_CgrpSub *cgrpSub = new Ecg::Win_CgrpSub;
+
+    Ecg::Curses_Win cw(cgrpRoot);
+    Ecg::Curses_Win *subWin = new Ecg::Curses_Win(cgrpSub);
+    Ecg::Curses_Win *subsubWin = new Ecg::Curses_Win(cgrpSub);
 
     if (cw.CW_Init(" xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ")) {
         std::cout << "Curses init failed\n";
         return 1;
     }
     subWin->CW_Init(" This is subWin"); // sub window bkg is invalid.
-    subsubWin->CW_Init(" This is subsubwin");
 
-    auto cgrpListMap = ecgList.GetCgrpListMap();
-    subWin->CW_SetContent(cgrpListMap);
-
-    subsubWin->CW_SetContent(v);
-
-    auto cgrpRoots = ecgList.GetCgroupRoots();
-    cw.CW_BindWin(subWin, true);
+    subsubWin->CW_Init("");
     subWin->CW_BindWin(subsubWin, true);
 
-    cw.CW_SetContent(cgrpRoots);
+    cw.CW_BindWin(subWin, true);
     cw.CW_Draw("null");
 
     while (1) {
