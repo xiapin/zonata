@@ -343,34 +343,32 @@ int main(int argc, char **argv)
 
     // optParser.Start_Parse(argc, argv);
 
-    std::vector<std::string> u, v;
-    std::map<std::string, std::vector<std::string>> map;
-
-    for (auto i = 0; i < 99; i++) {
+    std::vector<std::string> v;
+    for (auto i = 0; i < 100; i++) {
         v.emplace_back(std::to_string(i));
-        u.emplace_back(std::to_string(i + 1000));
     }
-    map["1"] = u;
-    map["0"] = u;
 
     Ecg::Ecg_list ecgList;
-
     Ecg::Curses_Win cw;
-
     Ecg::Curses_Win *subWin = new Ecg::Curses_Win;
+    Ecg::Curses_Win *subsubWin = new Ecg::Curses_Win;
 
-    if (cw.CW_Init(" Instruction:   <Left><Right>flip over   <Up><Down>select   <Enter>enter   <Esc>exit/back")) {
+    if (cw.CW_Init(" xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ")) {
         std::cout << "Curses init failed\n";
         return 1;
     }
-    subWin->CW_Init(" This is subWin");
+    subWin->CW_Init(" This is subWin"); // sub window bkg is invalid.
+    subsubWin->CW_Init(" This is subsubwin");
 
     auto cgrpListMap = ecgList.GetCgrpListMap();
     subWin->CW_SetContent(cgrpListMap);
 
-    cw.CW_BindWin(subWin, true);
+    subsubWin->CW_SetContent(v);
 
     auto cgrpRoots = ecgList.GetCgroupRoots();
+    cw.CW_BindWin(subWin, true);
+    subWin->CW_BindWin(subsubWin, true);
+
     cw.CW_SetContent(cgrpRoots);
     cw.CW_Draw("null");
 

@@ -50,7 +50,6 @@ class Curses_Win {
 public:
     int CW_Init(std::string bkStr);
     int CW_SetContent(std::vector<std::string> &v);
-    // int CW_SetContent(std::string &str);
     int CW_SetContent(std::map<std::string, std::vector<std::string>> &m);
     int CW_Draw(std::string selected);
     int CW_BindWin(Curses_Win *win, bool sub);
@@ -62,7 +61,7 @@ private:
     int CW_Exceptoin();
     int CW_CreateBkd(std::string bkStr);
 
-        // int CW_Draw(std::string str);
+    int CW_SetSubWinContent(std::string selected); // for subwindow
     int CW_Draw(unsigned curPage);
     int CW_Scroll(unsigned curPage, int size);
     int CW_Delete(WINDOW **win, int count);
