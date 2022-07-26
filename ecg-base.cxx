@@ -308,8 +308,7 @@ int Curses_Win::CW_Delete(WINDOW **win, int count)
 }; // namespace Ecg
 
 
-// #ifdef ECG_BASE_TEST
-#if 1
+#ifdef ECG_BASE_TEST
 // static void A(std::string &arg)
 // {
 //     std::cout << "A " << arg << std::endl;

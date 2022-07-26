@@ -11,6 +11,9 @@
 namespace Ecg
 {
 
+std::string Ecg_list::m_cgrpRootDir = "";
+unsigned Ecg_list::m_cgrpRootDirLen = 0;
+
 std::vector<std::string>
 Ecg_list::GetCgroupRoots()
 {
@@ -51,22 +54,26 @@ Ecg_list::Ecg_list()
 
     m_cgrpRootDir = Ecg::Common_Utils::Getoverlap(cgrps.at(0), cgrps.at(1));
     m_cgrpRootDirLen = m_cgrpRootDir.length();
-
-    for (auto item : cgrps) {
-        m_cgrpListMap[item] = ScanSpecificCgroup(item);
-    }
 }
 
 std::map<std::string, std::vector<std::string>>
 Ecg_list::GetCgrpListMap()
 {
-    return m_cgrpListMap;
+    std::map<std::string, std::vector<std::string>> m;
+
+    auto cgrps = GetCgroupRoots();
+    for (auto item : cgrps) {
+        m[item] = ScanSpecificCgroup(item);
+    }
+    return m;
 }
 
 void Ecg_list::ShowAllCgroups()
 {
+    auto cgrpListMap = GetCgrpListMap();
+
     std::map<std::string, std::vector<std::string>>::iterator it;
-    for (it = m_cgrpListMap.begin(); it != m_cgrpListMap.end(); it++) {
+    for (it = cgrpListMap.begin(); it != cgrpListMap.end(); it++) {
         // std::cout << it->first.substr(m_cgrpRootDirLen) + ":" << std::endl;
         std::cout << it->first << std::endl;
         for (auto child : it->second) {
@@ -131,30 +138,32 @@ void Ecg_list::ScanContainersRoot
 std::map<std::string, std::vector<std::string>>
 Ecg_list::GetAllContainers()
 {
+    auto cgrpListMap = GetCgrpListMap();
     std::vector<std::string> childGrpRoot;
     std::map<std::string, std::vector<std::string>>::iterator it;
+    std::map<std::string, std::vector<std::string>> contListMap;
 
-    for (it = m_cgrpListMap.begin(); it != m_cgrpListMap.end(); it++) {
+    for (it = cgrpListMap.begin(); it != cgrpListMap.end(); it++) {
         if (strstr(it->first.c_str(), "files")) {
             ScanContainersRoot(it->first, childGrpRoot);
             for (auto item : childGrpRoot) {
                 std::vector<std::string> childGrp;
                 ScanContainersRoot(it->first + "/" + item, childGrp);
-                m_contListMap[item] = childGrp;
+                contListMap[item] = childGrp;
             }
             break;
         }
     }
 
     // std::cout << "Container root:" << std::endl;
-    // for (it = m_contListMap.begin(); it != m_contListMap.end(); it++) {
+    // for (it = contListMap.begin(); it != contListMap.end(); it++) {
     //     std::cout << it->first << std::endl;
     //     for (auto item : it->second) {
     //         std::cout << item << std::endl;
     //     }
     // }
 
-    return m_contListMap;
+    return contListMap;
 }
 
 } // namespace Ecg
@@ -164,12 +173,8 @@ int main(int argc, char **argv)
 {
     Ecg::Ecg_list ecg_list;
 
-    // ecg_list.ShowAllCgroups();
-    // ecg_list.GetAllContainers();
-
-    tool_ncurses ncurses;
-
-    ncurses.info_ncurses(ecg_list.GetCgrpListMap());
+    ecg_list.ShowAllCgroups();
+    ecg_list.GetAllContainers();
 
     return 0;
 }
