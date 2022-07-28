@@ -4,9 +4,9 @@ COMPILE = g++ ${CFLAGS}
 
 all:
 	@rm -f ecg-base ecg-list ecg-monitor ecg-ne ecg-control
-	@${COMPILE} -DECG_BASE_TEST ecg-base.cxx -o ecg-base
-	@${COMPILE} -DECG_LIST_EXE ecg-base.cxx ecg-list.cxx -o ecg-list
-	@${COMPILE} ecg-list.cxx ecg-base.cxx ecg-monitor.cxx -o ecg-monitor
+	@${COMPILE} -DECG_BASE_TEST ecg-base.cxx -o ecg-base ${LDFLAGS}
+	@${COMPILE} -DECG_LIST_EXE ecg-base.cxx ecg-list.cxx -o ecg-list ${LDFLAGS}
+	@${COMPILE} ecg-list.cxx ecg-base.cxx ecg-monitor.cxx -o ecg-monitor ${LDFLAGS}
 	@${COMPILE} ecg-list.cxx ecg-base.cxx ecg-ne.cxx -o ecg-ne ${LDFLAGS}
 	@${COMPILE} ecg-base.cxx ecg-list.cxx ecg-control.cxx -o ecg-control ${LDFLAGS}
 ecg-base:
@@ -14,10 +14,10 @@ ecg-base:
 ecg-list:
 	@${COMPILE} -DECG_LIST_EXE ecg-base.cxx ecg-list.cxx -o ecg-list ${LDFLAGS}
 ecg-monitor:
-	@${COMPILE} ecg-list.cxx ecg-base.cxx ecg-monitor.cxx -o ecg-monitor
+	@${COMPILE} ecg-list.cxx ecg-base.cxx ecg-monitor.cxx -o ecg-monitor ${LDFLAGS}
 ecg-ne:
 	@${COMPILE} ecg-list.cxx ecg-base.cxx ecg-ne.cxx -o ecg-ne ${LDFLAGS}
 ecg-control:
-	@${COMPILE} ecg-base.cxx ecg-list.cxx ecg-control.cxx -o ecg-control
+	@${COMPILE} ecg-base.cxx ecg-list.cxx ecg-control.cxx -o ecg-control ${LDFLAGS}
 clean:
 	@rm -f ecg-base ecg-list ecg-monitor ecg-ne ecg-control

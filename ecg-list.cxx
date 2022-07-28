@@ -1,5 +1,7 @@
 #include "ecg-base.h"
 #include "ecg-list.h"
+
+#include <fstream>
 #include <iostream>
 #include <vector>
 #include <string.h>
@@ -155,26 +157,113 @@ Ecg_list::GetAllContainers()
         }
     }
 
-    // std::cout << "Container root:" << std::endl;
-    // for (it = contListMap.begin(); it != contListMap.end(); it++) {
-    //     std::cout << it->first << std::endl;
-    //     for (auto item : it->second) {
-    //         std::cout << item << std::endl;
-    //     }
-    // }
-
     return contListMap;
 }
+
+class Win_CgrpRoot : public Curses_Content {
+public:
+    Win_CgrpRoot() {}
+    virtual ~Win_CgrpRoot() {}
+
+    std::vector<std::string> GetContent(std::string selected)
+    {
+        Ecg::Ecg_list ecgList;
+        return ecgList.GetCgroupRoots();
+    }
+};
+
+class Win_CgrpSub : public Curses_Content {
+public:
+    Win_CgrpSub() {}
+    virtual ~Win_CgrpSub() {}
+
+    std::vector<std::string> GetContent(std::string selected)
+    {
+        Ecg::Ecg_list ecglist;
+       return ecglist.ScanSpecificCgroup(selected);
+    }
+};
+
+class Win_CgrpCont : public Curses_Content {
+public:
+    Win_CgrpCont() {}
+    virtual ~Win_CgrpCont() {}
+
+    std::vector<std::string> GetContent(std::string cgrp)
+    {
+        std::ifstream f(cgrp, std::ios::in);
+        if (!f.is_open()) {
+            return {};
+        }
+
+        std::vector<std::string> fileList;
+        DIR *pDir;
+        struct dirent *d;
+        if (!(pDir = opendir(cgrp.c_str()))) {
+            std::cout << "open " + cgrp + " error" << std::endl;
+            return {};
+        }
+
+        while ((d = readdir(pDir)) != 0) {
+            if (d->d_type == DT_DIR) {
+                continue;;
+            }
+
+            // map[d->d_name] = Ecg::Fs_Utils::readFileLine(cgrp + "/" + d->d_name);
+            fileList.push_back(cgrp + "/" + d->d_name);
+        }
+
+        closedir(pDir);
+        f.close();
+        return fileList;
+    }
+};
+
+class Win_FileCont : public Curses_Content {
+public:
+    Win_FileCont() {}
+    virtual ~Win_FileCont() {}
+
+    std::vector<std::string> GetContent(std::string controlFile)
+    {
+        return Ecg::Fs_Utils::readFileLine(controlFile);
+    }
+};
 
 } // namespace Ecg
 
 #ifdef ECG_LIST_EXE
 int main(int argc, char **argv)
 {
-    Ecg::Ecg_list ecg_list;
+    Ecg::Win_CgrpRoot *cgrpRoot = new Ecg::Win_CgrpRoot;
+    Ecg::Win_CgrpSub *cgrpSub = new Ecg::Win_CgrpSub;
+    Ecg::Win_CgrpCont *cgrpCont = new Ecg::Win_CgrpCont;
+    Ecg::Win_FileCont *fileCont = new Ecg::Win_FileCont;
 
-    ecg_list.ShowAllCgroups();
-    ecg_list.GetAllContainers();
+    Ecg::Curses_Win cw(cgrpRoot);
+    Ecg::Curses_Win *subWin = new Ecg::Curses_Win(cgrpSub);
+    Ecg::Curses_Win *subsubWin = new Ecg::Curses_Win(cgrpCont);
+    Ecg::Curses_Win *contWin = new Ecg::Curses_Win(fileCont);
+
+    if (cw.CW_Init()) {
+        std::cout << "Curses init failed\n";
+        return 1;
+    }
+    cw.CW_CreateBkd("        SubPage<Enter>  UP<pageup>  Down<pagedown> Back<Esc>");
+
+    subWin->CW_Init();
+    subsubWin->CW_Init();
+    contWin->CW_Init();
+
+    cw.CW_BindWin(subWin, true);
+    subWin->CW_BindWin(subsubWin, true);
+    subsubWin->CW_BindWin(contWin, true);
+
+    cw.CW_Draw("null");
+
+    while (1) {
+        getchar();
+    }
 
     return 0;
 }

@@ -96,7 +96,7 @@ int Ecg_Monitor::MonitorCgroup(std::string cgrpPath, PSI_TYPE type, PRESSURE_LEV
     std::cout << "Add " + cgrpPath + " to monitor...\n";
     int fd = open(cgrpPath.c_str(), O_RDWR | O_NONBLOCK);
     if (fd < 0) {
-        std::cout << "open " + cgrpPath + " error!\n";
+        std::cout << "open " + cgrpPath + " error:" + strerror(errno) << std::endl;;
         return -1;
     }
 
@@ -109,7 +109,7 @@ int Ecg_Monitor::MonitorCgroup(std::string cgrpPath, PSI_TYPE type, PRESSURE_LEV
     snprintf(tmp, sizeof(tmp), "%s %d %d", trigData->someOrFull,
             trigData->stallAmountUs, trigData->timeWindowUs);
     if (write(fd, tmp, sizeof(tmp)) < 0) {
-        std::cout << "write trigger data error!\n";
+        std::cout << "write trigger data error:" + strerror(errno) << std::endl;;
         close(fd);
         return -1;
     }
@@ -163,7 +163,7 @@ int Ecg_Monitor::AddEventMonitor(std::string controlFile, std::string args)
    
     int cFd = open(controlFile.c_str(), O_RDONLY);
     if (cFd < 0) {
-        std::cout << "Open " + controlFile + " error\n";
+        std::cout << "Open " + controlFile + " error: " + strerror(errno) << std::endl;
         return -1;
     }
 

@@ -131,7 +131,7 @@ int Curses_Win::CW_CreateBkd(std::string bkStr)
     return 0;
 }
 
-int Curses_Win::CW_Init(std::string bkStr)
+int Curses_Win::CW_Init()
 {
     initscr();
     getmaxyx(stdscr, m_row, m_col);
@@ -151,7 +151,6 @@ int Curses_Win::CW_Init(std::string bkStr)
     noecho();
     keypad(stdscr, TRUE);
 
-    CW_CreateBkd(bkStr);
     refresh();
 
     return 0;
@@ -175,6 +174,9 @@ void Curses_Win::CW_FlushContent(std::string selected)
 int Curses_Win::CW_Draw(std::string selected)
 {
     CW_FlushContent(selected);
+    if (m_vContent.empty() && m_belongWin) {
+        return m_belongWin->CW_DrawPage(0);
+    }
 
     CW_DrawPage(0);
     std::cout << "No content\n" << std::endl;
@@ -254,7 +256,7 @@ int Curses_Win::CW_DrawPage(unsigned int curPage)
     m_win[0] = newwin(m_row - 8, m_wSize, 5, 8); // start_col = 8
 
     wbkgd(m_win[0], COLOR_PAIR(2));
-	wborder(m_win[0], ' ', ' ', 0, 0,' ',' ',' ',' ');
+	wborder(m_win[0], ' ', ' ', 0, 0, ' ', ' ', ' ', ' ');
 
     for (i = 1, j = 5; i <= m_lSize; i++, j++) {
         m_win[i] = subwin(m_win[0], 1, m_wSize - 2, j + 1, 9); // start_col + 1
@@ -283,67 +285,9 @@ int Curses_Win::CW_Delete(WINDOW **win, int count)
 
 }; // namespace Ecg
 
-// Test Code
-namespace Ecg {
-
-class Win_CgrpRoot : public Curses_Content {
-public:
-    Win_CgrpRoot() {}
-    virtual ~Win_CgrpRoot() {}
-
-    std::vector<std::string> GetContent(std::string selected)
-    {
-        Ecg::Ecg_list ecgList;
-        return ecgList.GetCgroupRoots();
-    }
-};
-
-class Win_CgrpSub : public Curses_Content {
-public:
-    Win_CgrpSub() {}
-    virtual ~Win_CgrpSub() {}
-
-    std::vector<std::string> GetContent(std::string selected)
-    {
-        Ecg::Ecg_list ecglist;
-       return ecglist.ScanSpecificCgroup(selected);
-    }
-};
-
-};
-
-// #ifdef ECG_BASE_TEST
-#if 1
+#ifdef ECG_BASE_TEST
 int main(int argc, char **argv)
 {
-    std::vector<std::string> v;
-    for (auto i = 0; i < 100; i++) {
-        v.emplace_back(std::to_string(i));
-    }
-
-    Ecg::Win_CgrpRoot *cgrpRoot = new Ecg::Win_CgrpRoot;
-    Ecg::Win_CgrpSub *cgrpSub = new Ecg::Win_CgrpSub;
-
-    Ecg::Curses_Win cw(cgrpRoot);
-    Ecg::Curses_Win *subWin = new Ecg::Curses_Win(cgrpSub);
-    Ecg::Curses_Win *subsubWin = new Ecg::Curses_Win(cgrpSub);
-
-    if (cw.CW_Init(" xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ")) {
-        std::cout << "Curses init failed\n";
-        return 1;
-    }
-    subWin->CW_Init(" This is subWin"); // sub window bkg is invalid.
-
-    subsubWin->CW_Init("");
-    subWin->CW_BindWin(subsubWin, true);
-
-    cw.CW_BindWin(subWin, true);
-    cw.CW_Draw("null");
-
-    while (1) {
-        getchar();
-    }
-
     return 0;
 }
 #endif
