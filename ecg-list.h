@@ -9,8 +9,6 @@ namespace Ecg {
 class Ecg_list {
 public:
     static std::vector<std::string> GetCgroupRoots();
-    static std::vector<std::string> ScanSpecificCgroup(std::string CgrpSubsysRoot);
-
     // first: container root, second: child containers
     static std::map<std::string, std::vector<std::string>> GetCgrpListMap();
     static void ShowAllCgroups();
@@ -21,12 +19,12 @@ public:
     ~Ecg_list() {}
 
 private:
-    static void ScanChildGrp(std::string CgrpParent, std::vector<std::string> &v);
     // for container's root, scan from cgroup/files
     static void ScanContainersRoot(std::string CgrpSubsys, std::vector<std::string> &v);
 
     static std::string m_cgrpRootDir; // cgroup mount point.
     static unsigned m_cgrpRootDirLen;
+    static bool m_cgroupV2;
 };
 
 }; // namespace Ecg

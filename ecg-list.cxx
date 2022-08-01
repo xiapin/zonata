@@ -6,6 +6,7 @@
 #include <vector>
 #include <string.h>
 #include <dirent.h>
+#include <sys/vfs.h>
 
 #define CGROUP_PREFIX       "cgroup"
 #define CGRP_PREFIX_LEN     (7)
@@ -15,6 +16,7 @@ namespace Ecg
 
 std::string Ecg_list::m_cgrpRootDir = "";
 unsigned Ecg_list::m_cgrpRootDirLen = 0;
+bool Ecg_list::m_cgroupV2 = false;
 
 std::vector<std::string>
 Ecg_list::GetCgroupRoots()
@@ -23,6 +25,12 @@ Ecg_list::GetCgroupRoots()
     char *line = nullptr;
     size_t len = 0;
     int read = 0;
+
+    if (m_cgroupV2) {
+        std::string cgroupRoot = "/sys/fs/cgroup";
+
+        return Ecg::Fs_Utils::ScanChildDir(cgroupRoot, false);
+    }
 
     FILE *pF = fopen("/proc/mounts", "r");
     if (pF == nullptr) {
@@ -52,6 +60,14 @@ Ecg_list::GetCgroupRoots()
 
 Ecg_list::Ecg_list()
 {
+#define CGROUP2_SUPER_MAGIC 0x63677270
+
+    struct statfs buf;
+    statfs("/sys/fs/cgroup", &buf);
+    if (buf.f_type == CGROUP2_SUPER_MAGIC) {
+        m_cgroupV2 = true;
+    }
+
     auto cgrps = GetCgroupRoots();
 
     m_cgrpRootDir = Ecg::Common_Utils::Getoverlap(cgrps.at(0), cgrps.at(1));
@@ -65,7 +81,7 @@ Ecg_list::GetCgrpListMap()
 
     auto cgrps = GetCgroupRoots();
     for (auto item : cgrps) {
-        m[item] = ScanSpecificCgroup(item);
+        m[item] = Ecg::Fs_Utils::ScanChildDir(item, true);
     }
     return m;
 }
@@ -76,46 +92,11 @@ void Ecg_list::ShowAllCgroups()
 
     std::map<std::string, std::vector<std::string>>::iterator it;
     for (it = cgrpListMap.begin(); it != cgrpListMap.end(); it++) {
-        // std::cout << it->first.substr(m_cgrpRootDirLen) + ":" << std::endl;
         std::cout << it->first << std::endl;
         for (auto child : it->second) {
-            // std::cout << child.replace(child.find("/"), 1, ":") << std::endl;
             std::cout << child << std::endl;
         }
     }
-}
-
-void Ecg_list::ScanChildGrp(std::string CgrpParent, std::vector<std::string> &v)
-{
-    DIR *pDir;
-    struct dirent *d;
-    if (!(pDir = opendir(CgrpParent.c_str()))) {
-        std::cout << "open " + CgrpParent + " error" << std::endl;
-        return;
-    }
-
-    while ((d = readdir(pDir)) != 0) {
-        if (strcmp(d->d_name, ".") && strcmp(d->d_name, "..")) {
-            if (d->d_type == DT_DIR) {
-                // v.push_back(CgrpParent.substr(m_cgrpRootDirLen) + "/" + d->d_name);
-                v.push_back(CgrpParent + "/" + d->d_name); // do not skip root
-                ScanChildGrp(CgrpParent + "/" + d->d_name, v);
-            }
-        }
-    }
-
-    closedir(pDir);
-}
-
-std::vector<std::string>
-Ecg_list::ScanSpecificCgroup
-(std::string CgrpSubsysRoot)
-{
-    std::vector<std::string> childGrps;
-
-    ScanChildGrp(CgrpSubsysRoot, childGrps);
-
-    return childGrps;
 }
 
 void Ecg_list::ScanContainersRoot
@@ -179,8 +160,7 @@ public:
 
     std::vector<std::string> GetContent(std::string selected)
     {
-        Ecg::Ecg_list ecglist;
-       return ecglist.ScanSpecificCgroup(selected);
+       return Ecg::Fs_Utils::ScanChildDir(selected, true);
     }
 };
 

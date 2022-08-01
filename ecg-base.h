@@ -14,9 +14,13 @@ public:
     static std::vector<std::string> readFileLine(const std::string& path);
     // read file to single string
     static std::string readFile(const std::string& path);
+    static std::vector<std::string> ScanChildDir(const std::string& path, bool recursion);
 
     Fs_Utils() {}
     ~Fs_Utils() {}
+
+private:
+    static void ScanChildRecursion(std::string parent, std::vector<std::string> &v, bool recursion);
 };
 
 class Common_Utils {

@@ -109,7 +109,6 @@ int Ecg_Monitor::MonitorCgroup(std::string cgrpPath, PSI_TYPE type, PRESSURE_LEV
     snprintf(tmp, sizeof(tmp), "%s %d %d", trigData->someOrFull,
             trigData->stallAmountUs, trigData->timeWindowUs);
     if (write(fd, tmp, sizeof(tmp)) < 0) {
-        std::cout << "write trigger data error:" + strerror(errno) << std::endl;;
         close(fd);
         return -1;
     }

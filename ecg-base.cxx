@@ -2,6 +2,8 @@
 #include <fstream>
 #include <iostream>
 #include <math.h>
+#include <dirent.h>
+#include <string.h>
 
 #include "ecg-list.h"
 
@@ -47,6 +49,39 @@ Fs_Utils::readFileLine
     return v;
 }
 
+std::vector<std::string>
+Fs_Utils::ScanChildDir
+(const std::string& path, bool recursion)
+{
+    std::vector<std::string> subDirs;
+    ScanChildRecursion(path, subDirs, recursion);
+
+    return subDirs;
+}
+
+void Fs_Utils::ScanChildRecursion
+(std::string parent, std::vector<std::string> &v, bool recursion)
+{
+    DIR *pDir;
+    struct dirent *d;
+    if (!(pDir = opendir(parent.c_str()))) {
+        std::cout << "open " + parent + " error" << std::endl;
+        return;
+    }
+
+    while ((d = readdir(pDir)) != 0) {
+        if (strcmp(d->d_name, ".") && strcmp(d->d_name, "..")) {
+            if (d->d_type == DT_DIR) {
+                v.push_back(parent + "/" + d->d_name); // do not skip root
+                if (recursion)
+                    ScanChildRecursion(parent + "/" + d->d_name, v, true);
+            }
+        }
+    }
+
+    closedir(pDir);
+}
+
 std::string
 Common_Utils::Getoverlap
 (std::string str1, std::string str2)
@@ -68,7 +103,7 @@ void Common_Utils::PrintVectorString
         return;
 
     for (auto item : v) {
-        std::cerr << prefix + item << std::endl;
+        std::cout << prefix + item << std::endl;
     }
 }
 
