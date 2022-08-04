@@ -6,7 +6,6 @@
 #include <vector>
 #include <string.h>
 #include <dirent.h>
-#include <sys/vfs.h>
 
 #define CGROUP_PREFIX       "cgroup"
 #define CGRP_PREFIX_LEN     (7)
@@ -16,7 +15,6 @@ namespace Ecg
 
 std::string Ecg_list::m_cgrpRootDir = "";
 unsigned Ecg_list::m_cgrpRootDirLen = 0;
-bool Ecg_list::m_cgroupV2 = false;
 
 std::vector<std::string>
 Ecg_list::GetCgroupRoots()
@@ -26,7 +24,7 @@ Ecg_list::GetCgroupRoots()
     size_t len = 0;
     int read = 0;
 
-    if (m_cgroupV2) {
+    if (Common_Utils::IsCgroupV2()) {
         std::string cgroupRoot = "/sys/fs/cgroup";
 
         return Ecg::Fs_Utils::ScanChildDir(cgroupRoot, false);
@@ -60,14 +58,6 @@ Ecg_list::GetCgroupRoots()
 
 Ecg_list::Ecg_list()
 {
-#define CGROUP2_SUPER_MAGIC 0x63677270
-
-    struct statfs buf;
-    statfs("/sys/fs/cgroup", &buf);
-    if (buf.f_type == CGROUP2_SUPER_MAGIC) {
-        m_cgroupV2 = true;
-    }
-
     auto cgrps = GetCgroupRoots();
 
     m_cgrpRootDir = Ecg::Common_Utils::Getoverlap(cgrps.at(0), cgrps.at(1));
@@ -121,6 +111,10 @@ void Ecg_list::ScanContainersRoot
 std::map<std::string, std::vector<std::string>>
 Ecg_list::GetAllContainers()
 {
+    if (Common_Utils::IsCgroupV2()) {
+        return GetAllContainers_v2();
+    }
+
     auto cgrpListMap = GetCgrpListMap();
     std::vector<std::string> childGrpRoot;
     std::map<std::string, std::vector<std::string>>::iterator it;
@@ -141,6 +135,15 @@ Ecg_list::GetAllContainers()
     return contListMap;
 }
 
+std::map<std::string, std::vector<std::string>>
+Ecg_list::GetAllContainers_v2()
+{
+    std::map<std::string, std::vector<std::string>> contListMap;
+
+    contListMap = GetCgrpListMap();
+    return contListMap; // TODO:
+}
+
 class Win_CgrpRoot : public Curses_Content {
 public:
     Win_CgrpRoot() {}
@@ -149,18 +152,20 @@ public:
     std::vector<std::string> GetContent(std::string selected)
     {
         Ecg::Ecg_list ecgList;
+
         return ecgList.GetCgroupRoots();
     }
 };
 
-class Win_CgrpSub : public Curses_Content {
-public:
-    Win_CgrpSub() {}
-    virtual ~Win_CgrpSub() {}
 
-    std::vector<std::string> GetContent(std::string selected)
+class Win_FileCont : public Curses_Content {
+public:
+    Win_FileCont() {}
+    virtual ~Win_FileCont() {}
+
+    std::vector<std::string> GetContent(std::string controlFile)
     {
-       return Ecg::Fs_Utils::ScanChildDir(selected, true);
+        return Ecg::Fs_Utils::readFileLine(controlFile);
     }
 };
 
@@ -171,6 +176,10 @@ public:
 
     std::vector<std::string> GetContent(std::string cgrp)
     {
+        if (Ecg::Fs_Utils::GetFileType(cgrp) != DIRECTORY) {
+            Win_FileCont fileCont;
+            return fileCont.GetContent(cgrp);
+        }
         std::ifstream f(cgrp, std::ios::in);
         if (!f.is_open()) {
             return {};
@@ -199,14 +208,20 @@ public:
     }
 };
 
-class Win_FileCont : public Curses_Content {
+class Win_CgrpSub : public Curses_Content {
 public:
-    Win_FileCont() {}
-    virtual ~Win_FileCont() {}
+    Win_CgrpSub() {}
+    virtual ~Win_CgrpSub() {}
 
-    std::vector<std::string> GetContent(std::string controlFile)
+    std::vector<std::string> GetContent(std::string selected)
     {
-        return Ecg::Fs_Utils::readFileLine(controlFile);
+        std::vector<std::string> subDirs = Ecg::Fs_Utils::ScanChildDir(selected, true);
+        if (!subDirs.empty()) {
+            return subDirs;
+        }
+
+        Win_CgrpCont CgrpCont;
+        return CgrpCont.GetContent(selected);
     }
 };
 

@@ -169,12 +169,5 @@ int main(int argc, char **argv)
 
     optParser.Start_Parse(argc, argv);
 
-    // std::string cgrp = argv[1];
-    // std::string newValue = argv[2];
-
-    // // Ecg::Ecg_Control::Ecg_CgrpSet(cgrp, newValue);
-
-    // // Ecg::Ecg_Control::Ecg_CgrpDelete(cgrp);
-
     return 0;
 }

@@ -4,6 +4,8 @@
 #include <math.h>
 #include <dirent.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/vfs.h>
 
 #include "ecg-list.h"
 
@@ -82,6 +84,28 @@ void Fs_Utils::ScanChildRecursion
     closedir(pDir);
 }
 
+FILE_TYPE Fs_Utils::GetFileType(std::string absPath)
+{
+    FILE_TYPE fType = UNKNOWN;
+
+    struct stat sb;
+    if (lstat(absPath.c_str(), &sb) == -1) {
+        return fType;
+    }
+
+    switch (sb.st_mode & S_IFMT) {
+        case S_IFBLK:  fType = BLK_DEVICE;          break;
+        case S_IFCHR:  fType = CHARACTER_DEVICE;    break;
+        case S_IFDIR:  fType = DIRECTORY;           break;
+        case S_IFIFO:  fType = FIFO;                break;
+        case S_IFLNK:  fType = SYMLINK;             break;
+        case S_IFREG:  fType = REGULAR;             break;
+        case S_IFSOCK: fType = SOCKET;              break;
+        default:       fType = UNKNOWN;             break;
+    }
+    return fType;
+}
+
 std::string
 Common_Utils::Getoverlap
 (std::string str1, std::string str2)
@@ -105,6 +129,34 @@ void Common_Utils::PrintVectorString
     for (auto item : v) {
         std::cout << prefix + item << std::endl;
     }
+}
+
+bool Common_Utils::IsContainerGroup(std::string &Path)
+{
+    std::string cgrpProcs = Path + "/cgroup.procs";
+
+    auto procs = Fs_Utils::readFileLine(cgrpProcs);
+
+    return procs.empty() ? false : true;
+}
+
+bool Common_Utils::IsCgroupV2()
+{
+#define CGROUP2_SUPER_MAGIC 0x63677270
+
+    static int isV2 = -1;
+
+    if (isV2 == -1) {
+        struct statfs buf;
+        statfs("/sys/fs/cgroup", &buf);
+        if (buf.f_type == CGROUP2_SUPER_MAGIC) {
+            isV2 = 1;
+        }
+
+        isV2 = (buf.f_type == CGROUP2_SUPER_MAGIC) ? 1 : 0;
+    }
+
+    return isV2 == 1;
 }
 
 int Opt_Parser::Regist_Handler(char shortOpt, OptHandlerDF optHandler)

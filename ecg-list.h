@@ -19,12 +19,12 @@ public:
     ~Ecg_list() {}
 
 private:
+    static std::map<std::string, std::vector<std::string>> GetAllContainers_v2();
     // for container's root, scan from cgroup/files
     static void ScanContainersRoot(std::string CgrpSubsys, std::vector<std::string> &v);
 
     static std::string m_cgrpRootDir; // cgroup mount point.
     static unsigned m_cgrpRootDirLen;
-    static bool m_cgroupV2;
 };
 
 }; // namespace Ecg

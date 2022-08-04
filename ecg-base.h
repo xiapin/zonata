@@ -8,13 +8,26 @@
 
 namespace Ecg {
 
+typedef enum {
+    BLK_DEVICE		= 0,
+    CHARACTER_DEVICE,
+    DIRECTORY,
+    FIFO,
+    SYMLINK,
+    REGULAR,
+    SOCKET,
+
+    UNKNOWN,
+} FILE_TYPE;
+
 class Fs_Utils {
 public:
     // read file, return multiple lines
-    static std::vector<std::string> readFileLine(const std::string& path);
+    static std::vector<std::string> readFileLine(const std::string &path);
     // read file to single string
-    static std::string readFile(const std::string& path);
-    static std::vector<std::string> ScanChildDir(const std::string& path, bool recursion);
+    static std::string readFile(const std::string &path);
+    static std::vector<std::string> ScanChildDir(const std::string &path, bool recursion);
+    static FILE_TYPE GetFileType(std::string absPath);
 
     Fs_Utils() {}
     ~Fs_Utils() {}
@@ -29,6 +42,8 @@ public:
     static std::string Getoverlap(std::string str1, std::string str2);
     static void PrintVectorString(std::string prefix,
                 std::vector<std::string> &v);
+    static bool IsContainerGroup(std::string &Path);
+    static bool IsCgroupV2();
 
     Common_Utils() {}
     ~Common_Utils() {}

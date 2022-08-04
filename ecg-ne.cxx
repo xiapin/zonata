@@ -15,49 +15,65 @@ public:
     CPU_Metrics() {}
     ~CPU_Metrics() {}
 
-    std::vector<std::string> GetMetricsData()
-    {
-        // TODO. sample
-        Ecg::Ecg_list ecgList;
-        std::string cpuSubsys;
-        std::vector<std::string> v;
+std::vector<std::string> GetMetricsData_v1()
+{
+    // TODO. sample
+    Ecg::Ecg_list ecgList;
+    std::string cpuSubsys;
+    std::vector<std::string> v;
 
-        auto cgrpRoots = ecgList.GetCgroupRoots();
-        for (auto item : cgrpRoots) {
-            if (strstr(item.c_str(), "cpuacct")) {
-                cpuSubsys = std::move(item);
-                break;
-            }
+    auto cgrpRoots = ecgList.GetCgroupRoots();
+    for (auto item : cgrpRoots) {
+        if (strstr(item.c_str(), "cpuacct")) {
+            cpuSubsys = std::move(item);
+            break;
         }
-
-        if (cpuSubsys.empty()) {
-            std::cout << "CPU subsys not mounted, Ecg_GetCpuUsageMetric not support.\n";
-            return {};
-        }
-
-        auto allConts = ecgList.GetAllContainers();
-        std::map<std::string, std::vector<std::string>>::iterator it;
-
-        v.emplace_back("# help " + m_helpInfo);
-        v.emplace_back("# type " + get_metric_name(m_metricType));
-
-        auto tmp = m_metricName + "{name=\"" + cpuSubsys + "\"} " +
-                    Ecg::Fs_Utils::readFile(cpuSubsys + "/cpuacct.usage");
-        v.emplace_back(tmp);
-        for (it = allConts.begin(); it != allConts.end(); it++) {
-            auto tmp = m_metricName + "{name=\"" + it->first + "\"} " +
-                    Ecg::Fs_Utils::readFile(cpuSubsys + "/" + it->first + "/cpuacct.usage");
-            v.emplace_back(tmp);
-
-            for (auto iter : it->second) {
-                tmp = m_metricName + "{name=\"" + it->first + "/" + iter.substr(0, 4) + "\"} " +
-                    Ecg::Fs_Utils::readFile(cpuSubsys + "/" + it->first + "/" + iter + "/cpuacct.usage");
-                v.emplace_back(tmp);
-            }
-        }
-
-        return v;
     }
+
+    if (cpuSubsys.empty()) {
+        std::cout << "CPU subsys not mounted, Ecg_GetCpuUsageMetric not support.\n";
+        return {};
+    }
+
+    auto allConts = ecgList.GetAllContainers();
+    std::map<std::string, std::vector<std::string>>::iterator it;
+
+    v.emplace_back("# help " + m_helpInfo);
+    v.emplace_back("# type " + get_metric_name(m_metricType));
+
+    auto tmp = m_metricName + "{name=\"" + cpuSubsys + "\"} " +
+                Ecg::Fs_Utils::readFile(cpuSubsys + "/cpuacct.usage");
+    v.emplace_back(tmp);
+    for (it = allConts.begin(); it != allConts.end(); it++) {
+        auto tmp = m_metricName + "{name=\"" + it->first + "\"} " +
+                Ecg::Fs_Utils::readFile(cpuSubsys + "/" + it->first + "/cpuacct.usage");
+        v.emplace_back(tmp);
+
+        for (auto iter : it->second) {
+            tmp = m_metricName + "{name=\"" + it->first + "/" + iter.substr(0, 4) + "\"} " +
+                Ecg::Fs_Utils::readFile(cpuSubsys + "/" + it->first + "/" + iter + "/cpuacct.usage");
+            v.emplace_back(tmp);
+        }
+    }
+
+    return v;
+}
+
+std::vector<std::string> GetMetricsData_v2()
+{
+    std::vector<std::string> v;
+
+    v.emplace_back("# help " + m_helpInfo);
+    return v;
+}
+
+std::vector<std::string> GetMetricsData()
+{
+    if (Common_Utils::IsCgroupV2()) {
+        return GetMetricsData_v2();
+    }
+    return GetMetricsData_v1();
+}
 };
 
 std::string
