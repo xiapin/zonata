@@ -113,7 +113,7 @@ void Ecg_Control::Set(std::string &optArg)
 {
     std::cout << "Set " << optArg << std::endl;
 
-    int pos = optArg.find('=');
+    size_t pos = optArg.find('=');
     if (pos == optArg.npos) {
         std::cerr << "syntax error, use -s cgrp_control=value.\n";
         return;

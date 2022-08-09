@@ -7,14 +7,26 @@
 #include <string.h>
 #include <fstream>
 
+#define M_HELP_PREFIX     "# help "
+#define M_TYPE_PREFIX     "# type "
+
 namespace Ecg
 {
 
 class CPU_Metrics : public Ecg_Metrics {
 public:
-    CPU_Metrics() {}
+    using Ecg_Metrics::Ecg_Metrics;
     ~CPU_Metrics() {}
 
+std::vector<std::string> GetMetricsData()
+{
+    if (Common_Utils::IsCgroupV2()) {
+        return GetMetricsData_v2();
+    }
+    return GetMetricsData_v1();
+}
+
+private:
 std::vector<std::string> GetMetricsData_v1()
 {
     // TODO. sample
@@ -38,8 +50,8 @@ std::vector<std::string> GetMetricsData_v1()
     auto allConts = ecgList.GetAllContainers();
     std::map<std::string, std::vector<std::string>>::iterator it;
 
-    v.emplace_back("# help " + m_helpInfo);
-    v.emplace_back("# type " + get_metric_name(m_metricType));
+    v.emplace_back(M_HELP_PREFIX + m_helpInfo);
+    v.emplace_back(M_TYPE_PREFIX + get_metric_name(m_metricType));
 
     auto tmp = m_metricName + "{name=\"" + cpuSubsys + "\"} " +
                 Ecg::Fs_Utils::readFile(cpuSubsys + "/cpuacct.usage");
@@ -62,18 +74,23 @@ std::vector<std::string> GetMetricsData_v1()
 std::vector<std::string> GetMetricsData_v2()
 {
     std::vector<std::string> v;
+    Ecg_list ecgList;
 
-    v.emplace_back("# help " + m_helpInfo);
+    v.emplace_back(M_HELP_PREFIX + m_helpInfo);
+    v.emplace_back(M_TYPE_PREFIX + get_metric_name(m_metricType));
+
+    auto contList = ecgList.GetAllContainers();
+    std::map<std::string, std::vector<std::string>>::iterator it;
+    for (it = contList.begin(); it != contList.end(); it++) {
+        v.emplace_back(it->first);
+        for (auto item : it->second) {
+            v.emplace_back(item);
+        }
+    }
+
     return v;
 }
 
-std::vector<std::string> GetMetricsData()
-{
-    if (Common_Utils::IsCgroupV2()) {
-        return GetMetricsData_v2();
-    }
-    return GetMetricsData_v1();
-}
 };
 
 std::string
@@ -202,8 +219,8 @@ int main(int argc, char **argv)
     Ecg::Ecg_Server ecgServer(9999);
     Ecg::Ecg_NodeExporter *ecgNe = Ecg::Ecg_NodeExporter::GetInstance();
 
-    Ecg::CPU_Metrics *cpuMetrics = new Ecg::CPU_Metrics();
-    cpuMetrics->Init("cpu_usage", "current cpu_usage", Ecg::COUNTER);
+    Ecg::CPU_Metrics *cpuMetrics = 
+        new Ecg::CPU_Metrics("cpu_usage", "current cpu_usage", Ecg::COUNTER);
     ecgNe->RegisterMetric(cpuMetrics);
 
     ecgServer.Start();

@@ -133,11 +133,28 @@ void Common_Utils::PrintVectorString
 
 bool Common_Utils::IsContainerGroup(std::string &Path)
 {
+    const static char *filters[] = {
+        "user.slice",
+        "dev-mqueue.mount",
+        "sys-kernel", // sys-kernel*
+        "init.scope",
+        ".service",
+    };
+
+    for (size_t i = 0; i < sizeof(filters)/sizeof(char *); i++) {
+        if (strstr(Path.c_str(), filters[i])) {
+            return false;
+        }
+    }
+
     std::string cgrpProcs = Path + "/cgroup.procs";
 
     auto procs = Fs_Utils::readFileLine(cgrpProcs);
+    if (procs.empty()) {
+        return false;
+    }
 
-    return procs.empty() ? false : true;
+    return true;
 }
 
 bool Common_Utils::IsCgroupV2()
@@ -157,6 +174,23 @@ bool Common_Utils::IsCgroupV2()
     }
 
     return isV2 == 1;
+}
+
+uint64_t Common_Utils::GetSplitInteger(std::string &src, char delim)
+{
+    uint64_t ret = 0;
+    size_t pos = src.find(delim);
+
+    if (pos == src.npos) {
+        return ret;
+    }
+
+    ret = atoll(src.substr(pos, src.size()).c_str());
+    if (ret) {
+        return ret;
+    }
+
+    return atoll(src.substr(0, pos).c_str());
 }
 
 int Opt_Parser::Regist_Handler(char shortOpt, OptHandlerDF optHandler)

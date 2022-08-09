@@ -139,8 +139,22 @@ std::map<std::string, std::vector<std::string>>
 Ecg_list::GetAllContainers_v2()
 {
     std::map<std::string, std::vector<std::string>> contListMap;
+    std::map<std::string, std::vector<std::string>>::iterator iter;
 
-    contListMap = GetCgrpListMap();
+    auto cgrpListMap = GetCgrpListMap();
+    for (iter = cgrpListMap.begin(); iter != cgrpListMap.end(); iter++) {
+        std::vector<std::string> contGrps;
+        for (auto item : iter->second) {
+            if (Common_Utils::IsContainerGroup(item)) {
+                contGrps.emplace_back(item);
+            }
+        }
+
+        if (!contGrps.empty()) {
+            contListMap[iter->first] = contGrps;
+        }
+    }
+
     return contListMap; // TODO:
 }
 
@@ -198,7 +212,6 @@ public:
                 continue;;
             }
 
-            // map[d->d_name] = Ecg::Fs_Utils::readFileLine(cgrp + "/" + d->d_name);
             fileList.push_back(cgrp + "/" + d->d_name);
         }
 

@@ -39,15 +39,12 @@ inline std::string get_metric_name(Metrics_Type e)
 
 class Ecg_Metrics {
 public:
+    Ecg_Metrics(std::string name,
+            std::string help, Metrics_Type type) :
+            m_metricName(name), m_helpInfo(help), m_metricType(type)
+            {}
     virtual ~Ecg_Metrics() {}
 
-    void Init(std::string name,
-            std::string help, Metrics_Type type)
-    {
-        m_metricName = std::move(name);
-        m_helpInfo = std::move(help);
-        m_metricType = type;
-    }
     std::string GetMetricName() { return m_metricName; }
     std::string GetHelp() { return m_helpInfo; }
     Metrics_Type GetMetricType() { return m_metricType; }

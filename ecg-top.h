@@ -1,4 +1,6 @@
 #include <string>
+#include <vector>
+
 #pragma once
 
 namespace Ecg
@@ -19,7 +21,7 @@ public:
     Top_Base() {}
 
     virtual ~Top_Base() {}
-    virtual void Top() = 0;
+    virtual std::vector<std::string> Top() = 0;
     virtual bool Match(ECG_TOP_TYPE topType) = 0;
     virtual bool Match(std::string topType) = 0;
 };

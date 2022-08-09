@@ -1,5 +1,6 @@
 #include "ecg-monitor.h"
 #include "ecg-list.h"
+#include "ecg-base.h"
 #include <iostream> // TODO
 #include <string.h>
 #include <unistd.h>
@@ -71,11 +72,18 @@ int Epoll_Type::Epoll_Loop()
 void Ecg_Monitor::ScanMonitorRoot()
 {
     Ecg::Ecg_list El;
-
-    auto cgrpListMap = El.GetCgrpListMap(); // first: /sys/fs/cgroup/cpu,cpuact...
+    auto cgrpListMap = El.GetCgrpListMap(); // first: /sys/fs/cgroup/cpu,cpuact...    
     auto contListMap = El.GetAllContainers(); // first: docker, podman...
-
     std::map<std::string, std::vector<std::string>>::iterator it, item;
+
+    m_monitorRoot.clear();
+    if (Common_Utils::IsCgroupV2()) {
+        for (it = contListMap.begin(); it != contListMap.end(); it++) {
+            m_monitorRoot.emplace_back(it->first);
+            m_monitorRoot.insert(m_monitorRoot.end(), it->second.begin(), it->second.end());
+        }
+        return;
+    }
 
     m_monitorRoot.clear();
     for (item = cgrpListMap.begin(); it != cgrpListMap.end(); item++) {
@@ -126,11 +134,11 @@ int Ecg_Monitor::Init()
         }
     }
 
-    m_ep = new Epoll_Type(1024);
+    m_ep = new Epoll_Type(10240);
     m_psiCfg = new PsiConfig();
 
     m_psiCfg->Init();
-    ScanMonitorRoot();
+    // ScanMonitorRoot();
 
     if (m_monitorRoot.empty()) {
         std::cout << "No available child cgroup monitor.\n";
@@ -228,8 +236,8 @@ void PsiConfig::Init()
 
 int main(int argc, char **argv)
 {
-    if (argc != 3)
-        return 1;
+    // if (argc != 3)
+    //     return 1;
     Ecg::Ecg_Monitor ecgMonitor;
 
     if (ecgMonitor.Init()) {
@@ -241,7 +249,8 @@ int main(int argc, char **argv)
     // memory/docker/<container_id>/memory.oom_control 1
     // memory/docker/<container_id>/memory.pressure_level level(low/medium/critical),mode(default/hierarchy/local)
     // memory/docker/<container_id>/memory.memsw.usage_in_bytes 104857600
-    ecgMonitor.AddEventMonitor(argv[1], argv[2]);
+    
+    // ecgMonitor.AddEventMonitor(argv[1], argv[2]);
     ecgMonitor.AddPSIMonitor();
     ecgMonitor.StartMonitor();
 

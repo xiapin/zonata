@@ -44,6 +44,8 @@ public:
                 std::vector<std::string> &v);
     static bool IsContainerGroup(std::string &Path);
     static bool IsCgroupV2();
+    // read interger from string + integer
+    static uint64_t GetSplitInteger(std::string &src, char delim);
 
     Common_Utils() {}
     ~Common_Utils() {}
