@@ -92,6 +92,11 @@ int Ecg_Control::Ecg_CgrpDelete(std::string cgrpName)
     return rmdir(cgrpName.c_str());
 }
 
+double Ecg_Control::Ecg_CgrpQos(std::string cgrpName)
+{
+    return 0;
+}
+
 void Ecg_Control::Show(std::string &unUsed)
 {
     Ecg::Ecg_list ecgList;
@@ -103,6 +108,7 @@ void Ecg_Control::Help(std::string &unUsed)
 {
     std::cout << "usage: ecg-control [<flags>]\n\n"
                 "-l show all cgroups\n"
+                "-q cgrp, show cgroup quality of service, adn calculate Qos score."
                 "-s cgrpfile=new value, set cgroup controller, eg: -s /cgroup/files/docker/files.limit=1\n"
                 "-g cgrp, get cgroup content, eg: -g /cgroup/files/docker\n"
                 "-c cgrp, create new cgroup, eg: -c /cgroup/files/test\n"
@@ -148,6 +154,11 @@ void Ecg_Control::Delete(std::string &optArg)
     Ecg_CgrpDelete(optArg);
 }
 
+void Ecg_Control::QosGet(std::string &optArg)
+{
+
+}
+
 }; // namespace Ecg
 
 int main(int argc, char **argv)
@@ -157,7 +168,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    std::string shortOpt = "hs:g:c:d:l";
+    std::string shortOpt = "hs:g:c:d:lq:";
     Ecg::Opt_Parser optParser(shortOpt);
 
     optParser.Regist_Handler('l', Ecg::Ecg_Control::Show);
@@ -166,6 +177,7 @@ int main(int argc, char **argv)
     optParser.Regist_Handler('g', Ecg::Ecg_Control::Get);
     optParser.Regist_Handler('c', Ecg::Ecg_Control::Create);
     optParser.Regist_Handler('d', Ecg::Ecg_Control::Delete);
+    optParser.Regist_Handler('q', Ecg::Ecg_Control::QosGet);
 
     optParser.Start_Parse(argc, argv);
 

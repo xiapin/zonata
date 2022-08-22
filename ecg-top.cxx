@@ -36,6 +36,8 @@ public:
 
         auto allCont = ecgList.GetAllContainers();
         std::map<std::string, std::vector<std::string>>::iterator iter;
+
+        m_allConts.clear();
         for (iter = allCont.begin(); iter != allCont.end(); iter++) {
             m_allConts.emplace_back(GetCpuStatV2(iter->first));
 
@@ -75,6 +77,14 @@ private:
         return a.m_usageUsec >= b.m_usageUsec;
     }
 
+    static CPU_Stat GetCpuStat(std::string cgrp)
+    {
+        if (Common_Utils::IsCgroupV2())
+            return GetCpuStatV2(cgrp);
+
+        return GetCpuStatV1(cgrp);
+    }
+
     static CPU_Stat GetCpuStatV2(std::string cgrp)
     {
         CPU_Stat cpuStat;
@@ -93,6 +103,12 @@ private:
         cpuStat.m_usageSystem = Common_Utils::GetSplitInteger(stats.at(2), ' ');
 
         return cpuStat;
+    }
+
+    static CPU_Stat GetCpuStatV1(std::string cgrp)
+    {
+        CPU_Stat cpuStat;
+        return cpuStat; //TODO
     }
 };
 

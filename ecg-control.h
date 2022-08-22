@@ -14,6 +14,7 @@ public:
     static void Get(std::string &optArg);
     static void Create(std::string &optArg);
     static void Delete(std::string &optArg);
+    static void QosGet(std::string &optArg);
 
     Ecg_Control() {}
     ~Ecg_Control() {}
@@ -26,6 +27,8 @@ private:
     static int Ecg_CgrpCreate(std::string cgrp);
 
     static int Ecg_CgrpDelete(std::string cgrpName);
+
+    static double Ecg_CgrpQos(std::string cgrpName);
 };
 
 }; // namespace Ecg

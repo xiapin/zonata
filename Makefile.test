@@ -9,6 +9,7 @@ all:
 	@${COMPILE} ecg-list.cxx ecg-base.cxx ecg-monitor.cxx -o ecg-monitor ${LDFLAGS}
 	@${COMPILE} ecg-list.cxx ecg-base.cxx ecg-ne.cxx -o ecg-ne ${LDFLAGS}
 	@${COMPILE} ecg-base.cxx ecg-list.cxx ecg-control.cxx -o ecg-control ${LDFLAGS}
+	@${COMPILE} ecg-base.cxx ecg-list.cxx ecg-top.cxx -o ecg-top ${LDFLAGS}
 ecg-base:
 	@${COMPILE} -DECG_BASE_TEST ecg-list.cxx ecg-base.cxx -o ecg-base ${LDFLAGS}
 ecg-list:
@@ -19,5 +20,7 @@ ecg-ne:
 	@${COMPILE} ecg-list.cxx ecg-base.cxx ecg-ne.cxx -o ecg-ne ${LDFLAGS}
 ecg-control:
 	@${COMPILE} ecg-base.cxx ecg-list.cxx ecg-control.cxx -o ecg-control ${LDFLAGS}
+ecg-top:
+	@${COMPILE} ecg-base.cxx ecg-list.cxx ecg-top.cxx -o ecg-top ${LDFLAGS}
 clean:
-	@rm -f ecg-base ecg-list ecg-monitor ecg-ne ecg-control
+	@rm -f ecg-base ecg-list ecg-monitor ecg-ne ecg-control ecg-top
