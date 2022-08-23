@@ -4,9 +4,6 @@
 #include "ecg-list.h"
 
 #include <vector>
-#include <linux/perf_event.h>    /* Definition of PERF_* constants */
-#include <linux/hw_breakpoint.h> /* Definition of HW_* constants */
-#include <sys/syscall.h>         /* Definition of SYS_* constants */
 #include <unistd.h>
 #include <asm/unistd.h>
 #include <sys/ioctl.h>
@@ -36,12 +33,12 @@ static bool CPUOnline(int cpu)
     return online.compare("0");
 }
 
-long long Qos::Qos_GetCPUCycles(unsigned timeout)
+long long Qos::Qos_GroupEvents(perf_type_id perfType, unsigned timeoutUs, int type)
 {
-    long long cycles = 0;
+    long long Total = 0;
     long long count = 0;
     struct perf_event_attr pe = { 0 };
-    struct timespec tv = {.tv_sec = timeout, .tv_nsec = 0};
+    struct timespec tv = {.tv_sec = 0, .tv_nsec = timeoutUs * 1000};
     std::vector<int> perfFds;
     int i = 0;
 
@@ -50,9 +47,9 @@ long long Qos::Qos_GetCPUCycles(unsigned timeout)
         return -1;
     }
 
-    pe.type = PERF_TYPE_HARDWARE;
+    pe.type = perfType;
     pe.size = sizeof(struct perf_event_attr);
-    pe.config = PERF_COUNT_HW_CPU_CYCLES;
+    pe.config = type;
     pe.disabled = 1;
     pe.exclude_kernel = 1;
     pe.exclude_hv = 1;
@@ -81,56 +78,24 @@ long long Qos::Qos_GetCPUCycles(unsigned timeout)
 
     for (i = 0; i < perfFds.size(); i++) {
         read(perfFds.at(i), &count, sizeof(count));
-        cycles += count;
+        Total += count;
         close(perfFds.at(i));
     }
 
-    return cycles;
-}
-
-long long Qos::Qos_GetInstrumentions(unsigned timeout)
-{
-    long long inst = 0;
-
-    return inst;
-}
-
-long long Qos::Qos_GetCacheMisses(unsigned timeout)
-{
-    long long misses = 0;
-
-    return misses;
+    return Total;
 }
 
 int Qos::Qos_PreparePerfEventGrp()
 {
-    auto cgrpTasks = Fs_Utils::readFileLine(m_cgrp + "/tasks");
-    if (!cgrpTasks.size()) {
-        std::cout << "Cgroup " + m_cgrp + " invalid, no tasks!\n" << std::endl;
-        return -1;
-    }
-
     if (Common_Utils::IsCgroupV2()) {
         std::cout << "Cgroup v2, to be added!\n" << std::endl;
         return -1;
     }
 
-//     size_t pos = m_cgrp.rfind("/");
-//     std::string grpName = "/sys/fs/cgroup/perf_event/" + m_cgrp.substr(pos, m_cgrp.length());
+    if (m_perfEventFd > 0) {
+        return 0;
+    }
 
-//     if (Fs_Utils::GetFileType(grpName) == DIRECTORY) {
-//         goto open;
-//     }
-
-//     // create perf_event group
-//     mkdir(grpName.c_str(), 0664);
-//     for (auto item : cgrpTasks) {
-//         Fs_Utils::WriteFile(grpName + "/tasks", item, true);
-//     }
-
-//     m_perfEventGrp = grpName;
-
-// open:
     m_perfEventFd = open(m_cgrp.c_str(), O_RDONLY);
 
     return 0;
@@ -146,19 +111,77 @@ void Qos::Qos_DestroyPerfEventGrp()
     rmdir(m_perfEventGrp.c_str());
 }
 
+long long Qos::Qos_GetInstrumentons(unsigned timeoutUs)
+{
+    return Qos_GroupEvents(PERF_TYPE_HARDWARE, timeoutUs, PERF_COUNT_HW_INSTRUCTIONS);
+}
+
+long long Qos::Qos_GetCpuCycles(unsigned timeoutUs)
+{
+    return Qos_GroupEvents(PERF_TYPE_HARDWARE, timeoutUs, PERF_COUNT_HW_CPU_CYCLES);
+}
+
+long long Qos::Qos_GetBranchMisses(unsigned timeoutUs)
+{
+    return Qos_GroupEvents(PERF_TYPE_HARDWARE, timeoutUs, PERF_COUNT_HW_CACHE_MISSES);
+}
+
+long long Qos::Qos_GetCacheMisses(unsigned timeoutUs)
+{
+    return Qos_GroupEvents(PERF_TYPE_HARDWARE, timeoutUs, PERF_COUNT_HW_BRANCH_MISSES);
+}
+
+long long Qos::Qos_GetAlignmentFaults(unsigned timeoutUs)
+{
+    return Qos_GroupEvents(PERF_TYPE_SOFTWARE, timeoutUs, PERF_COUNT_SW_ALIGNMENT_FAULTS);
+}
+
+long long Qos::Qos_GetContextSwitches(unsigned timeoutUs)
+{
+    return Qos_GroupEvents(PERF_TYPE_SOFTWARE, timeoutUs, PERF_COUNT_SW_CONTEXT_SWITCHES);
+}
+
+long long Qos::Qos_GetPageFaults(unsigned timeoutUs)
+{
+    return Qos_GroupEvents(PERF_TYPE_SOFTWARE, timeoutUs, PERF_COUNT_SW_PAGE_FAULTS);
+}
+
+long long Qos::Qos_GetTaskClock(unsigned timeoutUs)
+{
+    return Qos_GroupEvents(PERF_TYPE_SOFTWARE, timeoutUs, PERF_COUNT_SW_TASK_CLOCK);
+}
+
+long long Qos::Qos_GetCPUClock(unsigned timeoutUs)
+{
+    return Qos_GroupEvents(PERF_TYPE_SOFTWARE, timeoutUs, PERF_COUNT_SW_CPU_CLOCK);
+}
+
 };
 
 int main(int argc, char **argv)
 {
-    if (argc != 2) {
-        printf("usage: %s + cgrp\n", argv[0]);
+    if (argc != 3) {
+        printf("usage: %s + cgrp + timeoutUs\n", argv[0]);
         return 1;
     }
 
     std::string cgrp = argv[1];
     Ecg::Qos EcgQos(cgrp);
+    unsigned timeout = atoi(argv[2]);
 
-    printf("cgrp %s cycles:%lld\n", cgrp.c_str(), EcgQos.Qos_GetCPUCycles(3));
+    long long insts = EcgQos.Qos_GetInstrumentons(timeout);
+    long long cycles = EcgQos.Qos_GetCpuCycles(timeout);
+    long long CacheMisses = EcgQos.Qos_GetCacheMisses(timeout);
+    long long branchMisses = EcgQos.Qos_GetBranchMisses(10000);
+
+    long long cs = EcgQos.Qos_GetContextSwitches(timeout);
+    long long tc = EcgQos.Qos_GetTaskClock(timeout);
+    long long cc = EcgQos.Qos_GetCPUClock(timeout);
+
+    printf("cgrp:%s in 10us, IPC:lld% Cachemiss:%lld BranchMiss:%lld\n"
+            "ContextSwitch:%lld  TaskClock:%lld CPU clock:%lld\n",
+            cgrp.c_str(), insts/cycles, CacheMisses, branchMisses,
+            cs, tc, cc);
 
     return 0;
 }
