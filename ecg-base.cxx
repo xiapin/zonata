@@ -6,6 +6,9 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/vfs.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "ecg-list.h"
 
@@ -104,6 +107,26 @@ FILE_TYPE Fs_Utils::GetFileType(std::string absPath)
         default:       fType = UNKNOWN;             break;
     }
     return fType;
+}
+
+int Fs_Utils::WriteFile(const std::string &path, std::string content, bool append)
+{
+    int flag = O_CREAT | O_RDWR;
+    
+    if (append) {
+        flag |= O_APPEND;
+    }
+    
+    int fd = open(path.c_str(), flag, 0664);
+    if (fd < 0) {
+        std::cout << "open " + path + " Error\n";
+        return fd;
+    }
+
+    write(fd, content.c_str(), content.length());
+
+    close(fd);
+    return 0;
 }
 
 std::string
