@@ -2,6 +2,7 @@
 #include <linux/perf_event.h>    /* Definition of PERF_* constants */
 #include <linux/hw_breakpoint.h> /* Definition of HW_* constants */
 #include <sys/syscall.h>         /* Definition of SYS_* constants */
+#include <map>
 
 #pragma once
 
@@ -28,7 +29,9 @@ public:
     Qos(std::string &cgrp) :
     m_cgrp(cgrp), m_perfEventFd(-1) {}
     ~Qos() { Qos_DestroyPerfEventGrp(); }
+
 private:
+    long long Qos_GroupEvents(perf_event_attr *eventAttr, long long timeoutUs);
     long long Qos_GroupEvents(perf_type_id perfType, long long timeoutUs, int config);
     int Qos_PreparePerfEventGrp();
     void Qos_DestroyPerfEventGrp();
@@ -36,6 +39,7 @@ private:
     std::string m_cgrp;
     std::string m_perfEventGrp;
     int m_perfEventFd;
+    std::map<int, long long> m_evResult;
 };
 
 };
