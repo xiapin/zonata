@@ -10,22 +10,22 @@ namespace Ecg {
 class Qos {
 public:
     /* Hardware */
-    long long Qos_GetInstrumentons(unsigned timeoutUs);
-    long long Qos_GetCpuCycles(unsigned timeoutUs);
-    long long Qos_GetBranchMisses(unsigned timeoutUs);
-    long long Qos_GetCacheMisses(unsigned timeoutUs);
+    long long Qos_GetInstrumentons(long long timeoutUs);
+    long long Qos_GetCpuCycles(long long timeoutUs);
+    long long Qos_GetBranchMisses(long long timeoutUs);
+    long long Qos_GetCacheMisses(long long timeoutUs);
     /* software */
-    long long Qos_GetAlignmentFaults(unsigned timeoutUs);
-    long long Qos_GetContextSwitches(unsigned timeoutUs);
-    long long Qos_GetPageFaults(unsigned timeoutUs);
-    long long Qos_GetTaskClock(unsigned timeoutUs);
-    long long Qos_GetCPUClock(unsigned timeoutUs);
+    long long Qos_GetAlignmentFaults(long long timeoutUs);
+    long long Qos_GetContextSwitches(long long timeoutUs);
+    long long Qos_GetPageFaults(long long timeoutUs);
+    long long Qos_GetTaskClock(long long timeoutUs);
+    long long Qos_GetCPUClock(long long timeoutUs);
 
     Qos(std::string &cgrp) :
     m_cgrp(cgrp), m_perfEventFd(-1) {}
     ~Qos() { Qos_DestroyPerfEventGrp(); }
 private:
-    long long Qos_GroupEvents(perf_type_id perfType, unsigned timeoutUs, int type);
+    long long Qos_GroupEvents(perf_type_id perfType, long long timeoutUs, int type);
     int Qos_PreparePerfEventGrp();
     void Qos_DestroyPerfEventGrp();
 

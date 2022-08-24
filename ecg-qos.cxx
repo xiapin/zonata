@@ -33,14 +33,16 @@ static bool CPUOnline(int cpu)
     return online.compare("0");
 }
 
-long long Qos::Qos_GroupEvents(perf_type_id perfType, unsigned timeoutUs, int type)
+long long Qos::Qos_GroupEvents(perf_type_id perfType, long long timeoutUs, int type)
 {
     long long Total = 0;
     long long count = 0;
     struct perf_event_attr pe = { 0 };
-    struct timespec tv = {.tv_sec = 0, .tv_nsec = timeoutUs * 1000};
+    struct timespec tv = {
+	    .tv_sec = timeoutUs / 1000000,
+	    .tv_nsec = (timeoutUs % 1000000) * 1000};
     std::vector<int> perfFds;
-    int i = 0;
+    size_t i = 0;
 
     if (Qos_PreparePerfEventGrp()) {
         std::cout << "Qos_PreparePerfEventGrp failed!\n";
@@ -54,7 +56,7 @@ long long Qos::Qos_GroupEvents(perf_type_id perfType, unsigned timeoutUs, int ty
     pe.exclude_kernel = 1;
     pe.exclude_hv = 1;
 
-    for (i = 0; i < get_nprocs_conf(); i++) {
+    for (i = 0; i < (size_t)get_nprocs_conf(); i++) {
         if (!CPUOnline(i)) {
             continue;
         }
@@ -111,47 +113,47 @@ void Qos::Qos_DestroyPerfEventGrp()
     rmdir(m_perfEventGrp.c_str());
 }
 
-long long Qos::Qos_GetInstrumentons(unsigned timeoutUs)
+long long Qos::Qos_GetInstrumentons(long long timeoutUs)
 {
     return Qos_GroupEvents(PERF_TYPE_HARDWARE, timeoutUs, PERF_COUNT_HW_INSTRUCTIONS);
 }
 
-long long Qos::Qos_GetCpuCycles(unsigned timeoutUs)
+long long Qos::Qos_GetCpuCycles(long long timeoutUs)
 {
     return Qos_GroupEvents(PERF_TYPE_HARDWARE, timeoutUs, PERF_COUNT_HW_CPU_CYCLES);
 }
 
-long long Qos::Qos_GetBranchMisses(unsigned timeoutUs)
+long long Qos::Qos_GetBranchMisses(long long timeoutUs)
 {
     return Qos_GroupEvents(PERF_TYPE_HARDWARE, timeoutUs, PERF_COUNT_HW_CACHE_MISSES);
 }
 
-long long Qos::Qos_GetCacheMisses(unsigned timeoutUs)
+long long Qos::Qos_GetCacheMisses(long long timeoutUs)
 {
     return Qos_GroupEvents(PERF_TYPE_HARDWARE, timeoutUs, PERF_COUNT_HW_BRANCH_MISSES);
 }
 
-long long Qos::Qos_GetAlignmentFaults(unsigned timeoutUs)
+long long Qos::Qos_GetAlignmentFaults(long long timeoutUs)
 {
     return Qos_GroupEvents(PERF_TYPE_SOFTWARE, timeoutUs, PERF_COUNT_SW_ALIGNMENT_FAULTS);
 }
 
-long long Qos::Qos_GetContextSwitches(unsigned timeoutUs)
+long long Qos::Qos_GetContextSwitches(long long timeoutUs)
 {
     return Qos_GroupEvents(PERF_TYPE_SOFTWARE, timeoutUs, PERF_COUNT_SW_CONTEXT_SWITCHES);
 }
 
-long long Qos::Qos_GetPageFaults(unsigned timeoutUs)
+long long Qos::Qos_GetPageFaults(long long timeoutUs)
 {
     return Qos_GroupEvents(PERF_TYPE_SOFTWARE, timeoutUs, PERF_COUNT_SW_PAGE_FAULTS);
 }
 
-long long Qos::Qos_GetTaskClock(unsigned timeoutUs)
+long long Qos::Qos_GetTaskClock(long long timeoutUs)
 {
     return Qos_GroupEvents(PERF_TYPE_SOFTWARE, timeoutUs, PERF_COUNT_SW_TASK_CLOCK);
 }
 
-long long Qos::Qos_GetCPUClock(unsigned timeoutUs)
+long long Qos::Qos_GetCPUClock(long long timeoutUs)
 {
     return Qos_GroupEvents(PERF_TYPE_SOFTWARE, timeoutUs, PERF_COUNT_SW_CPU_CLOCK);
 }
@@ -167,7 +169,7 @@ int main(int argc, char **argv)
 
     std::string cgrp = argv[1];
     Ecg::Qos EcgQos(cgrp);
-    unsigned timeout = atoi(argv[2]);
+    long long timeout = atoll(argv[2]);
 
     long long insts = EcgQos.Qos_GetInstrumentons(timeout);
     long long cycles = EcgQos.Qos_GetCpuCycles(timeout);
@@ -175,13 +177,16 @@ int main(int argc, char **argv)
     long long branchMisses = EcgQos.Qos_GetBranchMisses(10000);
 
     long long cs = EcgQos.Qos_GetContextSwitches(timeout);
+    long long faults = EcgQos.Qos_GetPageFaults(timeout);
     long long tc = EcgQos.Qos_GetTaskClock(timeout);
     long long cc = EcgQos.Qos_GetCPUClock(timeout);
 
-    printf("cgrp:%s in 10us, IPC:lld% Cachemiss:%lld BranchMiss:%lld\n"
-            "ContextSwitch:%lld  TaskClock:%lld CPU clock:%lld\n",
+    printf("cgrp:%s in 10us\n"
+            "IPC:%lld%% Cachemiss:%lld BranchMiss:%lld\n"
+            "ContextSwitch:%lld  TaskClock:%lld CPU clock:%lld\n"
+	    "pagefaults:%lld\n",
             cgrp.c_str(), insts/cycles, CacheMisses, branchMisses,
-            cs, tc, cc);
+            cs, tc, cc, faults);
 
     return 0;
 }
