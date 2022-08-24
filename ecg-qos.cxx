@@ -33,7 +33,7 @@ static bool CPUOnline(int cpu)
     return online.compare("0");
 }
 
-long long Qos::Qos_GroupEvents(perf_type_id perfType, long long timeoutUs, int type)
+long long Qos::Qos_GroupEvents(perf_type_id perfType, long long timeoutUs, int config)
 {
     long long Total = 0;
     long long count = 0;
@@ -51,7 +51,7 @@ long long Qos::Qos_GroupEvents(perf_type_id perfType, long long timeoutUs, int t
 
     pe.type = perfType;
     pe.size = sizeof(struct perf_event_attr);
-    pe.config = type;
+    pe.config = config;
     pe.disabled = 1;
     pe.exclude_kernel = 1;
     pe.exclude_hv = 1;
@@ -89,11 +89,6 @@ long long Qos::Qos_GroupEvents(perf_type_id perfType, long long timeoutUs, int t
 
 int Qos::Qos_PreparePerfEventGrp()
 {
-    if (Common_Utils::IsCgroupV2()) {
-        std::cout << "Cgroup v2, to be added!\n" << std::endl;
-        return -1;
-    }
-
     if (m_perfEventFd > 0) {
         return 0;
     }
@@ -131,6 +126,34 @@ long long Qos::Qos_GetBranchMisses(long long timeoutUs)
 long long Qos::Qos_GetCacheMisses(long long timeoutUs)
 {
     return Qos_GroupEvents(PERF_TYPE_HARDWARE, timeoutUs, PERF_COUNT_HW_BRANCH_MISSES);
+}
+
+long long Qos::Qos_GetDTLBLoads(long long timeoutUs)
+{
+    return Qos_GroupEvents(PERF_TYPE_HW_CACHE, timeoutUs,
+                PERF_COUNT_HW_CACHE_DTLB | PERF_COUNT_HW_CACHE_OP_READ << 8 |
+                PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16);
+}
+
+long long Qos::Qos_GetDTLBMisses(long long timeoutUs)
+{
+    return Qos_GroupEvents(PERF_TYPE_HW_CACHE, timeoutUs,
+                PERF_COUNT_HW_CACHE_DTLB | PERF_COUNT_HW_CACHE_OP_READ << 8 |
+                PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
+}
+
+long long Qos::Qos_GetL3Loads(long long timeoutUs)
+{
+    return Qos_GroupEvents(PERF_TYPE_HW_CACHE, timeoutUs,
+                PERF_COUNT_HW_CACHE_LL | PERF_COUNT_HW_CACHE_OP_READ << 8 |
+                PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16);
+}
+
+long long Qos::Qos_GetL3Misses(long long timeoutUs)
+{
+    return Qos_GroupEvents(PERF_TYPE_HW_CACHE, timeoutUs,
+                PERF_COUNT_HW_CACHE_LL | PERF_COUNT_HW_CACHE_OP_READ << 8 |
+                PERF_COUNT_HW_CACHE_RESULT_MISS << 16);
 }
 
 long long Qos::Qos_GetAlignmentFaults(long long timeoutUs)
@@ -174,18 +197,23 @@ int main(int argc, char **argv)
     long long insts = EcgQos.Qos_GetInstrumentons(timeout);
     long long cycles = EcgQos.Qos_GetCpuCycles(timeout);
     long long CacheMisses = EcgQos.Qos_GetCacheMisses(timeout);
-    long long branchMisses = EcgQos.Qos_GetBranchMisses(10000);
+    long long branchMisses = EcgQos.Qos_GetBranchMisses(timeout);
+    long long dTLBloads = EcgQos.Qos_GetDTLBLoads(timeout);
+    long long dTLBMisses = EcgQos.Qos_GetDTLBMisses(timeout);
+    long long L3Misses = EcgQos.Qos_GetL3Misses(timeout);
 
     long long cs = EcgQos.Qos_GetContextSwitches(timeout);
     long long faults = EcgQos.Qos_GetPageFaults(timeout);
     long long tc = EcgQos.Qos_GetTaskClock(timeout);
     long long cc = EcgQos.Qos_GetCPUClock(timeout);
 
-    printf("cgrp:%s in 10us\n"
+    printf("cgrp:%s in %lldus\n"
             "IPC:%lld%% Cachemiss:%lld BranchMiss:%lld\n"
-            "ContextSwitch:%lld  TaskClock:%lld CPU clock:%lld\n"
-	    "pagefaults:%lld\n",
-            cgrp.c_str(), insts/cycles, CacheMisses, branchMisses,
+            "dTLB-loads:%lld dTLB-Misses:%lld LLC-Misses:%lld\n"
+            "ContextSwitch:%lld TaskClock:%lld CPU clock:%lld\n"
+	        "pagefaults:%lld\n",
+            cgrp.c_str(), timeout, insts/cycles, CacheMisses, branchMisses,
+            dTLBloads, dTLBMisses, L3Misses,
             cs, tc, cc, faults);
 
     return 0;

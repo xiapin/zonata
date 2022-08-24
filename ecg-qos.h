@@ -14,6 +14,10 @@ public:
     long long Qos_GetCpuCycles(long long timeoutUs);
     long long Qos_GetBranchMisses(long long timeoutUs);
     long long Qos_GetCacheMisses(long long timeoutUs);
+    long long Qos_GetDTLBLoads(long long timeoutUs);
+    long long Qos_GetDTLBMisses(long long timeoutUs);
+    long long Qos_GetL3Loads(long long timeoutUs);
+    long long Qos_GetL3Misses(long long timeoutUs);
     /* software */
     long long Qos_GetAlignmentFaults(long long timeoutUs);
     long long Qos_GetContextSwitches(long long timeoutUs);
@@ -25,7 +29,7 @@ public:
     m_cgrp(cgrp), m_perfEventFd(-1) {}
     ~Qos() { Qos_DestroyPerfEventGrp(); }
 private:
-    long long Qos_GroupEvents(perf_type_id perfType, long long timeoutUs, int type);
+    long long Qos_GroupEvents(perf_type_id perfType, long long timeoutUs, int config);
     int Qos_PreparePerfEventGrp();
     void Qos_DestroyPerfEventGrp();
 
