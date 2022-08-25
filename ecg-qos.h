@@ -13,12 +13,15 @@ public:
     /* Hardware */
     long long Qos_GetInstrumentons(long long timeoutUs);
     long long Qos_GetCpuCycles(long long timeoutUs);
+    long long Qos_GetBranchInstructions(long long timeoutUs);
     long long Qos_GetBranchMisses(long long timeoutUs);
+    long long Qos_GetCacheRefs(long long timeoutUs);
     long long Qos_GetCacheMisses(long long timeoutUs);
     long long Qos_GetDTLBLoads(long long timeoutUs);
     long long Qos_GetDTLBMisses(long long timeoutUs);
-    long long Qos_GetL3Loads(long long timeoutUs);
-    long long Qos_GetL3Misses(long long timeoutUs);
+    // current not support
+    // long long Qos_GetL3Loads(long long timeoutUs);
+    // long long Qos_GetL3Misses(long long timeoutUs);
     /* software */
     long long Qos_GetAlignmentFaults(long long timeoutUs);
     long long Qos_GetContextSwitches(long long timeoutUs);
@@ -43,3 +46,4 @@ private:
 };
 
 };
+
