@@ -20,8 +20,8 @@ public:
     long long Qos_GetDTLBLoads(long long timeoutUs);
     long long Qos_GetDTLBMisses(long long timeoutUs);
     // current not support
-    // long long Qos_GetL3Loads(long long timeoutUs);
-    // long long Qos_GetL3Misses(long long timeoutUs);
+    long long Qos_GetL3Loads(long long timeoutUs);
+    long long Qos_GetL3Misses(long long timeoutUs);
     /* software */
     long long Qos_GetAlignmentFaults(long long timeoutUs);
     long long Qos_GetContextSwitches(long long timeoutUs);

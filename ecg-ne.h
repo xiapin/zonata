@@ -28,10 +28,10 @@ typedef enum {
 inline std::string get_metric_name(Metrics_Type e)
 {
     const char *metric_type_name[] = {
-        "counter",
-        "gauge",
-        "histogram",
-        "summary",
+        "counter\n",
+        "gauge\n",
+        "histogram\n",
+        "summary\n",
     };
 
     return metric_type_name[e];
@@ -41,19 +41,21 @@ class Ecg_Metrics {
 public:
     Ecg_Metrics(std::string name,
             std::string help, Metrics_Type type) :
-            m_metricName(name), m_helpInfo(help), m_metricType(type)
+            m_metricName(name),
+            m_helpInfo(help + "\n"),
+            m_metricType(get_metric_name(type))
             {}
     virtual ~Ecg_Metrics() {}
 
     std::string GetMetricName() { return m_metricName; }
     std::string GetHelp() { return m_helpInfo; }
-    Metrics_Type GetMetricType() { return m_metricType; }
+    std::string GetMetricType() { return m_metricType; }
 
     virtual std::vector<std::string> GetMetricsData() = 0;
 
     std::string m_metricName;
     std::string m_helpInfo;
-    Metrics_Type m_metricType;
+    std::string m_metricType;
 };
 
 class Ecg_Server {

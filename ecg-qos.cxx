@@ -247,29 +247,29 @@ long long Qos::Qos_GetDTLBMisses(long long timeoutUs)
     return Qos_GroupEvents(&pe, timeoutUs);
 }
 
-// long long Qos::Qos_GetL3Loads(long long timeoutUs)
-// {
-//     struct perf_event_attr pe = {0};
+long long Qos::Qos_GetL3Loads(long long timeoutUs)
+{
+    struct perf_event_attr pe = {0};
 
-//     pe.type = PERF_TYPE_HW_CACHE;
-//     pe.config = PERF_COUNT_HW_CACHE_LL |
-//                 PERF_COUNT_HW_CACHE_OP_READ << 8 |
-//                 PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16;
+    pe.type = PERF_TYPE_HW_CACHE;
+    pe.config = PERF_COUNT_HW_CACHE_LL |
+                PERF_COUNT_HW_CACHE_OP_READ << 8 |
+                PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16;
 
-//     return Qos_GroupEvents(&pe, timeoutUs);
-// }
+    return Qos_GroupEvents(&pe, timeoutUs);
+}
 
-// long long Qos::Qos_GetL3Misses(long long timeoutUs)
-// {
-//     struct perf_event_attr pe = {0};
+long long Qos::Qos_GetL3Misses(long long timeoutUs)
+{
+    struct perf_event_attr pe = {0};
 
-//     pe.type = PERF_TYPE_HW_CACHE;
-//     pe.config = PERF_COUNT_HW_CACHE_LL |
-//                 PERF_COUNT_HW_CACHE_OP_READ << 8 |
-//                 PERF_COUNT_HW_CACHE_RESULT_MISS << 16;
+    pe.type = PERF_TYPE_HW_CACHE;
+    pe.config = PERF_COUNT_HW_CACHE_LL |
+                PERF_COUNT_HW_CACHE_OP_READ << 8 |
+                PERF_COUNT_HW_CACHE_RESULT_MISS << 16;
 
-//     return Qos_GroupEvents(&pe, timeoutUs);
-// }
+    return Qos_GroupEvents(&pe, timeoutUs);
+}
 
 long long Qos::Qos_GetAlignmentFaults(long long timeoutUs)
 {

@@ -14,6 +14,7 @@ public:
     static void ShowAllCgroups();
     // first: cgroup root, second: child cgroups
     static std::map<std::string, std::vector<std::string>> GetAllContainers();
+    static std::string GetCgrpMountPoint();
 
     Ecg_list();
     ~Ecg_list() {}
@@ -21,10 +22,11 @@ public:
 private:
     static std::map<std::string, std::vector<std::string>> GetAllContainers_v2();
     // for container's root, scan from cgroup/files
-    static void ScanContainersRoot(std::string CgrpSubsys, std::vector<std::string> &v);
+    static void ScanContainersRoot
+        (std::string CgrpSubsys, std::string prefix, std::vector<std::string> &v);
 
     static std::string m_cgrpRootDir; // cgroup mount point.
-    static unsigned m_cgrpRootDirLen;
+    static std::vector<std::string> m_cgrpRootSys; // root subsystem
 };
 
 }; // namespace Ecg

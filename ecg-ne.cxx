@@ -29,12 +29,10 @@ std::vector<std::string> GetMetricsData()
 private:
 std::vector<std::string> GetMetricsData_v1()
 {
-    // TODO. sample
-    Ecg::Ecg_list ecgList;
     std::string cpuSubsys;
     std::vector<std::string> v;
 
-    auto cgrpRoots = ecgList.GetCgroupRoots();
+    auto cgrpRoots = Ecg_list::GetCgroupRoots();
     for (auto item : cgrpRoots) {
         if (strstr(item.c_str(), "cpuacct")) {
             cpuSubsys = std::move(item);
@@ -47,11 +45,11 @@ std::vector<std::string> GetMetricsData_v1()
         return {};
     }
 
-    auto allConts = ecgList.GetAllContainers();
+    auto allConts = Ecg_list::GetAllContainers();
     std::map<std::string, std::vector<std::string>>::iterator it;
 
     v.emplace_back(M_HELP_PREFIX + m_helpInfo);
-    v.emplace_back(M_TYPE_PREFIX + get_metric_name(m_metricType));
+    v.emplace_back(M_TYPE_PREFIX + GetMetricType());
 
     auto tmp = m_metricName + "{name=\"" + cpuSubsys + "\"} " +
                 Ecg::Fs_Utils::readFile(cpuSubsys + "/cpuacct.usage");
@@ -62,8 +60,8 @@ std::vector<std::string> GetMetricsData_v1()
         v.emplace_back(tmp);
 
         for (auto iter : it->second) {
-            tmp = m_metricName + "{name=\"" + it->first + "/" + iter.substr(0, 4) + "\"} " +
-                Ecg::Fs_Utils::readFile(cpuSubsys + "/" + it->first + "/" + iter + "/cpuacct.usage");
+            tmp = m_metricName + "{name=\"" + iter + "\"} " +
+                Ecg::Fs_Utils::readFile(cpuSubsys + "/" + iter + "/cpuacct.usage");
             v.emplace_back(tmp);
         }
     }
@@ -74,12 +72,11 @@ std::vector<std::string> GetMetricsData_v1()
 std::vector<std::string> GetMetricsData_v2()
 {
     std::vector<std::string> v;
-    Ecg_list ecgList;
 
     v.emplace_back(M_HELP_PREFIX + m_helpInfo);
-    v.emplace_back(M_TYPE_PREFIX + get_metric_name(m_metricType));
+    v.emplace_back(M_TYPE_PREFIX + GetMetricType());
 
-    auto contList = ecgList.GetAllContainers();
+    auto contList = Ecg_list::GetAllContainers();
     std::map<std::string, std::vector<std::string>>::iterator it;
     for (it = contList.begin(); it != contList.end(); it++) {
         v.emplace_back(it->first);
@@ -88,6 +85,7 @@ std::vector<std::string> GetMetricsData_v2()
         }
     }
 
+    // TODO：read
     return v;
 }
 

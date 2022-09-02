@@ -10,50 +10,44 @@ namespace Ecg
 
 class CPU_Stat {
 public:
-    CPU_Stat()
-    {
-        m_usageUsec = 0;
-        m_usageUser = 0;
-        m_usageSystem = 0;
-    }
-    CPU_Stat(std::string name, uint64_t usage, uint64_t user, uint64_t sys)
-        : m_contName(name), m_usageUsec(usage),
-            m_usageUser(user), m_usageSystem(sys) {}
+    CPU_Stat() {}
     ~CPU_Stat() {}
 
     std::string m_contName;
-    uint64_t m_usageUsec;
-    uint64_t m_usageUser;
-    uint64_t m_usageSystem;
+    std::string m_usageUsec;
+    std::string m_usageUser;
+    std::string m_usageSystem;
 };
 
 class Top_Cpu_Usage : public Top_Base {
 public:
     std::vector<std::string> Top()
     {
-        Ecg_list ecgList;
+        char tmp[256] = {0};
         std::vector<std::string> topVec;
 
-        auto allCont = ecgList.GetAllContainers();
+        auto allCont = Ecg_list::GetAllContainers();
         std::map<std::string, std::vector<std::string>>::iterator iter;
 
-        m_allConts.clear();
+        m_allContStat.clear();
         for (iter = allCont.begin(); iter != allCont.end(); iter++) {
-            m_allConts.emplace_back(GetCpuStatV2(iter->first));
+            m_allContStat.emplace_back(GetCpuStat(iter->first));
 
             for (auto item : iter->second) {
-                m_allConts.emplace_back(GetCpuStatV2(item));
+                m_allContStat.emplace_back(GetCpuStat(item));
             }
-        } // TODO:m_allConts update, current duplicate.
+        }
 
-        sort(m_allConts.begin(), m_allConts.end(), cmp);
+        sort(m_allContStat.begin(), m_allContStat.end(), cmp);
 
-        topVec.emplace_back("Name\t\t\tusage_usec\t\tuser_usec\t\tsystem_usec");
-        for (auto item : m_allConts) {
-            topVec.emplace_back(item.m_contName + "\t" +
-                        std::to_string(item.m_usageUsec) + "\t\t" +
-                        std::to_string(item.m_usageUser) + "\t\t" +
-                        std::to_string(item.m_usageUser));
+        snprintf(tmp, sizeof(tmp), "%12s | %12s | %12s | %12s", "Name",
+                    "Usage_usec", "User_usec", "Sys_usec");
+        topVec.emplace_back(tmp);
+        for (auto item : m_allContStat) {
+            snprintf(tmp, sizeof(tmp), "%12s | %12s | %12s | %12s",
+                    item.m_contName.c_str(), item.m_usageUsec.c_str(),
+                    item.m_usageUser.c_str(), item.m_usageSystem.c_str());
+            topVec.emplace_back(tmp);
         }
 
         return topVec;
@@ -70,7 +64,7 @@ public:
     }
 
 private:
-    std::vector<CPU_Stat> m_allConts;
+    std::vector<CPU_Stat> m_allContStat;
 
     static bool cmp(CPU_Stat &a, CPU_Stat &b)
     {
@@ -98,9 +92,11 @@ private:
         } else {
             cpuStat.m_contName = cgrp.substr(pos + 1, 16);
         }
-        cpuStat.m_usageUsec = Common_Utils::GetSplitInteger(stats.at(0), ' ');
-        cpuStat.m_usageUser = Common_Utils::GetSplitInteger(stats.at(1), ' ');
-        cpuStat.m_usageSystem = Common_Utils::GetSplitInteger(stats.at(2), ' ');
+
+        // TODO: Change int to string
+        cpuStat.m_usageUsec = Common_Utils::GetSplitString(stats.at(0), ' ', true);
+        cpuStat.m_usageUser = Common_Utils::GetSplitString(stats.at(1), ' ', true);
+        cpuStat.m_usageSystem = Common_Utils::GetSplitString(stats.at(2), ' ', true);
 
         return cpuStat;
     }
@@ -108,7 +104,20 @@ private:
     static CPU_Stat GetCpuStatV1(std::string cgrp)
     {
         CPU_Stat cpuStat;
-        return cpuStat; //TODO
+        std::string cpuacct = Ecg_list::GetCgrpMountPoint() + "/cpuacct";
+
+        size_t pos = cgrp.rfind("/");
+        if (pos == cgrp.npos) {
+            cpuStat.m_contName = cgrp;
+        } else {
+            cpuStat.m_contName = cgrp.substr(pos + 1, 8);
+        }
+
+        cpuStat.m_usageUsec = Fs_Utils::readFileLine(cpuacct + "/" + cgrp + "/cpuacct.usage").at(0);
+        cpuStat.m_usageUser = Fs_Utils::readFileLine(cpuacct + "/" + cgrp + "/cpuacct.usage_user").at(0);
+        cpuStat.m_usageSystem = Fs_Utils::readFileLine(cpuacct + "/" + cgrp + "/cpuacct.usage_sys").at(0);
+
+        return cpuStat;
     }
 };
 

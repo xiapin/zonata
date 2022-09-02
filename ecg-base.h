@@ -47,6 +47,7 @@ public:
     static bool IsCgroupV2();
     // read interger from string + integer
     static uint64_t GetSplitInteger(std::string &src, char delim);
+    static std::string GetSplitString(std::string &src, char delim, bool right);
 
     Common_Utils() {}
     ~Common_Utils() {}

@@ -14,7 +14,7 @@ namespace Ecg
 {
 
 std::string Ecg_list::m_cgrpRootDir = "";
-unsigned Ecg_list::m_cgrpRootDirLen = 0;
+std::vector<std::string> Ecg_list::m_cgrpRootSys = {};
 
 std::vector<std::string>
 Ecg_list::GetCgroupRoots()
@@ -24,10 +24,15 @@ Ecg_list::GetCgroupRoots()
     size_t len = 0;
     int read = 0;
 
+    if (!m_cgrpRootSys.empty()) {
+        return m_cgrpRootSys;
+    }
+
     if (Common_Utils::IsCgroupV2()) {
         std::string cgroupRoot = "/sys/fs/cgroup";
 
-        return Ecg::Fs_Utils::ScanChildDir(cgroupRoot, false);
+        m_cgrpRootSys = Ecg::Fs_Utils::ScanChildDir(cgroupRoot, false);
+        return m_cgrpRootSys;
     }
 
     FILE *pF = fopen("/proc/mounts", "r");
@@ -53,15 +58,12 @@ Ecg_list::GetCgroupRoots()
     }
 
     fclose(pF);
-    return cgrps;
+    m_cgrpRootSys = std::move(cgrps);
+    return m_cgrpRootSys;
 }
 
 Ecg_list::Ecg_list()
 {
-    auto cgrps = GetCgroupRoots();
-
-    m_cgrpRootDir = Ecg::Common_Utils::Getoverlap(cgrps.at(0), cgrps.at(1));
-    m_cgrpRootDirLen = m_cgrpRootDir.length();
 }
 
 std::map<std::string, std::vector<std::string>>
@@ -89,8 +91,20 @@ void Ecg_list::ShowAllCgroups()
     }
 }
 
+std::string Ecg_list::GetCgrpMountPoint()
+{
+    if (!m_cgrpRootDir.empty()) {
+        return m_cgrpRootDir;
+    }
+
+    auto cgrps = GetCgroupRoots();
+
+    m_cgrpRootDir = Ecg::Common_Utils::Getoverlap(cgrps.at(0), cgrps.at(1));
+    return m_cgrpRootDir;
+}
+
 void Ecg_list::ScanContainersRoot
-(std::string CgrpSubsys, std::vector<std::string> &v)
+(std::string CgrpSubsys, std::string prefix, std::vector<std::string> &v)
 {
     DIR *pDir;
     struct dirent *d;
@@ -101,7 +115,7 @@ void Ecg_list::ScanContainersRoot
 
     while ((d = readdir(pDir)) != 0) {
         if (d->d_type == DT_DIR && strcmp(d->d_name, ".") && strcmp(d->d_name, "..")) {
-            v.push_back(d->d_name);
+            v.push_back(prefix + "/" + d->d_name);
         }
     }
 
@@ -122,10 +136,10 @@ Ecg_list::GetAllContainers()
 
     for (it = cgrpListMap.begin(); it != cgrpListMap.end(); it++) {
         if (strstr(it->first.c_str(), "files")) {
-            ScanContainersRoot(it->first, childGrpRoot);
+            ScanContainersRoot(it->first, "", childGrpRoot);
             for (auto item : childGrpRoot) {
                 std::vector<std::string> childGrp;
-                ScanContainersRoot(it->first + "/" + item, childGrp);
+                ScanContainersRoot(it->first + "/" + item, item, childGrp);
                 contListMap[item] = childGrp;
             }
             break;

@@ -216,6 +216,25 @@ uint64_t Common_Utils::GetSplitInteger(std::string &src, char delim)
     return atoll(src.substr(0, pos).c_str());
 }
 
+std::string Common_Utils::GetSplitString
+(std::string &src, char delim, bool right)
+{
+    std::string ret;
+    size_t pos = src.find(delim);
+
+    if (pos == src.npos) {
+        return src;
+    }
+
+    if (right) {
+        ret = src.substr(pos, src.size());
+    } else {
+        ret = src.substr(0, pos);
+    }
+
+    return ret;
+}
+
 int Opt_Parser::Regist_Handler(char shortOpt, OptHandlerDF optHandler)
 {
     m_handlers[shortOpt] = optHandler;

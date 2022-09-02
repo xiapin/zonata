@@ -40,6 +40,11 @@ int Epoll_Type::Epoll_Loop()
 {
     char buf[128] = { 0 };
 
+    if (m_epollFd == 0) {
+        std::cout << "No avalibel resource to monitor!\n";
+        return 0;
+    }
+
     if (m_epollEvent == NULL) {
         m_epollEvent = (struct epoll_event *)malloc(sizeof(struct epoll_event) * m_maxEvent);
 
@@ -71,10 +76,9 @@ int Epoll_Type::Epoll_Loop()
 
 void Ecg_Monitor::ScanMonitorRoot()
 {
-    Ecg::Ecg_list El;
-    auto cgrpListMap = El.GetCgrpListMap(); // first: /sys/fs/cgroup/cpu,cpuact...    
-    auto contListMap = El.GetAllContainers(); // first: docker, podman...
-    std::map<std::string, std::vector<std::string>>::iterator it, item;
+    auto cgrpRoot = Ecg_list::GetCgroupRoots(); // /sys/fs/cgroup/cpu,cpuact...
+    auto contListMap = Ecg_list::GetAllContainers(); // first: docker, podman...
+    std::map<std::string, std::vector<std::string>>::iterator it;
 
     m_monitorRoot.clear();
     if (Common_Utils::IsCgroupV2()) {
@@ -85,14 +89,18 @@ void Ecg_Monitor::ScanMonitorRoot()
         return;
     }
 
-    m_monitorRoot.clear();
-    for (item = cgrpListMap.begin(); it != cgrpListMap.end(); item++) {
-        if (strstr(item->first.c_str(), "cpu")) {
-            // std::cout << item->first << std::endl;
-            for (it = contListMap.begin(); it != contListMap.end(); it++) {
-                m_monitorRoot.push_back(item->first + "/" + it->first);
-            }
+    std::string cpuSubsys;
+    for (auto item : cgrpRoot) {
+        if (strstr(item.c_str(), "cpu")) {
+            cpuSubsys = std::move(item);
             break;
+        }
+    }
+
+     for (it = contListMap.begin(); it != contListMap.end(); it++) {
+        m_monitorRoot.push_back(cpuSubsys + "/" + it->first);
+        for (auto conts : it->second) {
+            m_monitorRoot.push_back(cpuSubsys + "/" + conts);
         }
     }
 }
