@@ -40,11 +40,11 @@ public:
 
         sort(m_allContStat.begin(), m_allContStat.end(), cmp);
 
-        snprintf(tmp, sizeof(tmp), "%12s | %12s | %12s | %12s", "Name",
-                    "Usage_usec", "User_usec", "Sys_usec");
+        snprintf(tmp, sizeof(tmp), "%-12.12s | %-12.12s | %-12.12s | %-12.12s",
+                "Name", "Usage_usec", "User_usec", "Sys_usec");
         topVec.emplace_back(tmp);
         for (auto item : m_allContStat) {
-            snprintf(tmp, sizeof(tmp), "%12s | %12s | %12s | %12s",
+            snprintf(tmp, sizeof(tmp), "%-12.12s | %-12.12s | %-12.12s | %-12.12s",
                     item.m_contName.c_str(), item.m_usageUsec.c_str(),
                     item.m_usageUser.c_str(), item.m_usageSystem.c_str());
             topVec.emplace_back(tmp);
@@ -83,7 +83,7 @@ private:
     {
         CPU_Stat cpuStat;
         auto stats = Fs_Utils::readFileLine(cgrp + "/cpu.stat");
-        if (stats.size() <= 3)
+        if (stats.size() < 3)
             return cpuStat;
 
         size_t pos = cgrp.rfind("/");

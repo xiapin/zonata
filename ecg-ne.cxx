@@ -69,6 +69,16 @@ std::vector<std::string> GetMetricsData_v1()
     return v;
 }
 
+static std::string GetUsageV2(std::string cgrp)
+{
+    auto cpuStat = Fs_Utils::readFileLine(cgrp);
+    if (cpuStat.empty()) {
+        return {};
+    }
+
+    return cpuStat.at(0) + "\n";
+}
+
 std::vector<std::string> GetMetricsData_v2()
 {
     std::vector<std::string> v;
@@ -78,10 +88,16 @@ std::vector<std::string> GetMetricsData_v2()
 
     auto contList = Ecg_list::GetAllContainers();
     std::map<std::string, std::vector<std::string>>::iterator it;
+
     for (it = contList.begin(); it != contList.end(); it++) {
-        v.emplace_back(it->first);
+        auto tmp = m_metricName + "{name=\"" + it->first + "\"} " +
+                GetUsageV2(it->first + "/cpu.stat");
+        v.emplace_back(tmp);
+
         for (auto item : it->second) {
-            v.emplace_back(item);
+            auto tmp = m_metricName + "{name=\"" + item + "\"} " +
+                GetUsageV2(item + "/cpu.stat");
+            v.emplace_back(tmp);
         }
     }
 
