@@ -9,7 +9,7 @@
 namespace Ecg
 {
 
-#define METRIC_URL_HEADER       "/metrics/cgroup"
+#define METRIC_URL_HEADER       "/metrics"
 #define METRIC_RESPONSE_OK      200
 #define METRIC_RESPONSE_FAIL    401
 #define METRIC_NOT_IMPL         501
@@ -50,8 +50,10 @@ public:
     std::string GetMetricName() { return m_metricName; }
     std::string GetHelp() { return m_helpInfo; }
     std::string GetMetricType() { return m_metricType; }
+    std::vector<std::string> GetMetricsData();
 
-    virtual std::vector<std::string> GetMetricsData() = 0;
+    virtual std::vector<std::string> GetMetricsData_V1() = 0;
+    virtual std::vector<std::string> GetMetricsData_V2() = 0;
 
     std::string m_metricName;
     std::string m_helpInfo;

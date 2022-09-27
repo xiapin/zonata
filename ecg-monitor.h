@@ -1,6 +1,7 @@
 #include <sys/epoll.h>
 #include <string>
 #include <vector>
+#include <thread>
 #pragma once
 
 #define PSI_ROOT    "/proc/pressure/"
@@ -63,7 +64,7 @@ public:
     ~Epoll_Type() { if (m_epollEvent) free(m_epollEvent); };
 
     int Epoll_AddEvent(Poll_Data *data, EPOLL_EVENTS events);
-    int Epoll_DelEvent(Poll_Data &data);
+    int Epoll_DelEvent(Poll_Data *data);
     int Epoll_Loop();
 
 private:
@@ -101,9 +102,13 @@ public:
 private:
     void ScanMonitorRoot();
     int MonitorCgroup(std::string cgrpPath, PSI_TYPE type, PRESSURE_LEVEL level);
+    void NewGroupListener();
+    int BpfResultProc(char *buf, int size);
+
     std::vector<std::string> m_monitorRoot;
     Ecg::Epoll_Type *m_ep;
     Ecg::PsiConfig *m_psiCfg;
+    std::thread *m_bpfThread;
 };
 
 }; // namespace Ecg

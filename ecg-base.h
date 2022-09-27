@@ -29,6 +29,7 @@ public:
     static std::vector<std::string> ScanChildDir(const std::string &path, bool recursion);
     static FILE_TYPE GetFileType(std::string absPath);
     static int WriteFile(const std::string &path, std::string content, bool append);
+    static bool FileExist(const std::string &path);
 
     Fs_Utils() {}
     ~Fs_Utils() {}

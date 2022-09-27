@@ -13,21 +13,63 @@
 namespace Ecg
 {
 
+std::vector<std::string> Ecg_Metrics::GetMetricsData()
+{
+    if (Common_Utils::IsCgroupV2()) {
+        return GetMetricsData_V2();
+    }
+    return GetMetricsData_V1();
+}
+
+class Mem_Metrics : public Ecg_Metrics {
+public:
+    using Ecg_Metrics::Ecg_Metrics;
+    ~Mem_Metrics() {}
+
+std::vector<std::string> GetMetricsData_V1()
+{
+    return {};
+}
+
+std::vector<std::string> GetMetricsData_V2()
+{
+    std::vector<std::string> v;
+
+    v.emplace_back(M_HELP_PREFIX + m_helpInfo);
+    v.emplace_back(M_TYPE_PREFIX + GetMetricType());
+
+    auto contList = Ecg_list::GetAllContainers();
+    std::map<std::string, std::vector<std::string>>::iterator it;
+
+    for (it = contList.begin(); it != contList.end(); it++) {
+        auto tmp = m_metricName + "{name=\"" + it->first + "\"} " +
+                MemUsage_V2(it->first + "/memory.current");
+        v.emplace_back(tmp);
+
+        for (auto item : it->second) {
+            auto tmp = m_metricName + "{name=\"" + item + "\"} " +
+                MemUsage_V2(item + "/memory.current");
+            v.emplace_back(tmp);
+        }
+    }
+
+    return v;
+}
+
+private:
+std::string MemUsage_V2(std::string cgrp)
+{
+    return Fs_Utils::readFile(cgrp);
+}
+
+};
+
 class CPU_Metrics : public Ecg_Metrics {
 public:
     using Ecg_Metrics::Ecg_Metrics;
     ~CPU_Metrics() {}
 
-std::vector<std::string> GetMetricsData()
-{
-    if (Common_Utils::IsCgroupV2()) {
-        return GetMetricsData_v2();
-    }
-    return GetMetricsData_v1();
-}
-
-private:
-std::vector<std::string> GetMetricsData_v1()
+std::vector<std::string> GetMetricsData_V1()
 {
     std::string cpuSubsys;
     std::vector<std::string> v;
@@ -76,10 +118,10 @@ static std::string GetUsageV2(std::string cgrp)
         return {};
     }
 
-    return cpuStat.at(0) + "\n";
+    return Common_Utils::GetSplitString(cpuStat.at(0), ' ', true) + "\n";
 }
 
-std::vector<std::string> GetMetricsData_v2()
+std::vector<std::string> GetMetricsData_V2()
 {
     std::vector<std::string> v;
 
@@ -236,6 +278,10 @@ int main(int argc, char **argv)
     Ecg::CPU_Metrics *cpuMetrics = 
         new Ecg::CPU_Metrics("cpu_usage", "current cpu_usage", Ecg::COUNTER);
     ecgNe->RegisterMetric(cpuMetrics);
+
+    Ecg::Mem_Metrics *memMetrics =
+        new Ecg::Mem_Metrics("mem_usage", "current mem_usage", Ecg::COUNTER);
+    ecgNe->RegisterMetric(memMetrics);
 
     ecgServer.Start();
 

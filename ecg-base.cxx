@@ -129,6 +129,11 @@ int Fs_Utils::WriteFile(const std::string &path, std::string content, bool appen
     return 0;
 }
 
+bool Fs_Utils::FileExist(const std::string &path)
+{
+    return !access(path.c_str(), F_OK);
+}
+
 std::string
 Common_Utils::Getoverlap
 (std::string str1, std::string str2)
