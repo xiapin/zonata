@@ -108,7 +108,7 @@ void Ecg_Monitor::ScanMonitorRoot()
 
     std::string cpuSubsys;
     for (auto item : cgrpRoot) {
-        if (strstr(item.c_str(), "cpu")) {
+        if (strstr(item.c_str(), "cpuacct")) {
             cpuSubsys = std::move(item);
             break;
         }
@@ -154,14 +154,23 @@ int Ecg_Monitor::BpfResultProc(char *buf, int size)
 {
     int create = 0;
     char path[128] = {0};
-    std::string cgrpRoot = "/sys/fs/cgroup/";
 
     sscanf(buf, "%d\t%s", &create, path);
-    if (create) {
-        MonitorCgroup(cgrpRoot + path + "/memory.pressure", PSI_TYPE_MEM, PRESSURE_HIGH);
-        MonitorCgroup(cgrpRoot + path + "/io.pressure", PSI_TYPE_IO, PRESSURE_HIGH);
-        MonitorCgroup(cgrpRoot + path + "/cpu.pressure", PSI_TYPE_CPU, PRESSURE_HIGH);
+    if (!create) {
+        return 0;
     }
+
+    std::string cgrpRoot;
+    if (Common_Utils::IsCgroupV2()) {
+        cgrpRoot = "/sys/fs/cgroup/";
+    } else {
+        cgrpRoot = Ecg_list::GetCgrpMountPoint() + "cpuacct";
+    }
+
+    usleep(100 * 1000);
+    MonitorCgroup(cgrpRoot + path + "/memory.pressure", PSI_TYPE_MEM, PRESSURE_HIGH);
+    MonitorCgroup(cgrpRoot + path + "/io.pressure", PSI_TYPE_IO, PRESSURE_HIGH);
+    MonitorCgroup(cgrpRoot + path + "/cpu.pressure", PSI_TYPE_CPU, PRESSURE_HIGH);
 
     return 0;
 }
@@ -183,7 +192,7 @@ void Ecg_Monitor::NewGroupListener()
     if (pid == 0) {
         close(ppfd[0]);
         dup2(ppfd[1], STDERR_FILENO);
-        execve(BPF_PROG, NULL, environ);
+        execve(BPF_PROG, NULL, __environ);
 
         _exit(127);
     } else {
@@ -214,7 +223,7 @@ int Ecg_Monitor::Init()
     if (m_monitorRoot.empty()) {
         ScanMonitorRoot();
         if (m_monitorRoot.empty()) {
-            return 0; // no available cgroup.
+            return -1; // no available cgroup.
         }
     }
 
@@ -222,7 +231,6 @@ int Ecg_Monitor::Init()
     m_psiCfg = new PsiConfig();
 
     m_psiCfg->Init();
-    // ScanMonitorRoot();
 
     if (m_monitorRoot.empty()) {
         std::cout << "No available child cgroup monitor.\n";
@@ -321,24 +329,117 @@ void PsiConfig::Init()
 
 };  // namespace Ecg
 
-int main(int argc, char **argv)
+void Help()
 {
-    // if (argc != 3)
-    //     return 1;
-    Ecg::Ecg_Monitor ecgMonitor;
+    std::cout << "usage: ecg-monitor [<flags>]\n\n"
+            "-c --control   Eg: --control=/docker/foo/memory.usage_in_bytes for event\n"
+            "                   or --contrl=/docker/foo/ for psi\n"
+            "-v --value     Specic threshold or psi type, eg: 104857600 or psitype(io/mem/cpu)\n"
+            "-e --event     Enable event monitor.\n"
+            "-p --psi,      Enable psi monitor\n"
+            "-a --all,      Enable all psi monitor(io/mem/cpu)!\n";
+}
 
+static void PsiMonitor
+(Ecg::Ecg_Monitor &ecgMonitor, std::string &cgrp, std::string &type)
+{
+    Ecg::PSI_TYPE psiType;
+    std::string pressure;
+
+    if (!type.compare("io")) {
+        psiType = Ecg::PSI_TYPE_IO;
+        pressure = "/io.pressure";
+    } else if (!type.compare("mem") || !type.compare("memory")) {
+        psiType = Ecg::PSI_TYPE_MEM;
+        pressure = "/memory.pressure";
+    } else {
+        pressure = "/cpu.pressure";
+        psiType = Ecg::PSI_TYPE_IO;
+    }
+
+    ecgMonitor.MonitorCgroup(cgrp + pressure, psiType, Ecg::PRESSURE_NORMAL);
+}
+
+static const char *short_opts = "ahp:e:c:v:";
+
+enum MONITOR_TYPE
+{
+    MONITOR_EVENT,
+    MONITOR_PSI,
+    MONITOR_ALL_PSI,
+
+    MONITOR_TYPE_BUTT,
+};
+
+int main(int argc, char **argv, char **env)
+{
+    int opt;
+    int option_index = 0;
+    Ecg::Ecg_Monitor ecgMonitor;
+    std::string cgrp, value;
+    enum MONITOR_TYPE monType = MONITOR_TYPE_BUTT;
+    
     if (ecgMonitor.Init()) {
-        std::cout << "Init failed\n" ;
+        std::cout << "No available monitor source, Init failed\n" ;
         return 0;
+    }
+
+    struct option long_options[] = {
+        {"help", no_argument, NULL, 'h'},
+        {"all", no_argument, NULL, 'a'},
+        {"event", optional_argument, NULL, 'e'},
+        {"psi", optional_argument, NULL, 'p'},
+        {"control", optional_argument, NULL, 'c'},
+        {"value", optional_argument, NULL, 'v'},
+        {0, 0, 0, 0}
+    };
+
+
+    while ((opt = getopt_long(argc, argv, short_opts, long_options, &option_index)) != -1) {
+        switch (opt) {
+            case 'c':
+                cgrp = optarg;
+                break;
+            case 'v':
+                value = optarg;
+                break;
+            case 'a':
+                monType = MONITOR_ALL_PSI;
+                break;
+            case 'p':
+                monType = MONITOR_PSI;
+                break;
+            case 'e':
+                monType = MONITOR_EVENT;
+                break;
+            case 'h':
+            default:
+                Help();
+                return -1;
+        }
+    }
+
+    if (monType == MONITOR_PSI) {
+        PsiMonitor(ecgMonitor, cgrp, value);
+    } else if (monType == MONITOR_EVENT) {
+        ecgMonitor.AddEventMonitor(cgrp, value);
+    } else if (monType == MONITOR_ALL_PSI) {
+        ecgMonitor.AddPSIMonitor();
+    } else {
+        std::cout << "Please specific monitor type!\n";
+        Help();
+        return 1;
     }
 
     // memory/docker/<container_id>/memory.usage_in_bytes 104857600
     // memory/docker/<container_id>/memory.oom_control 1
     // memory/docker/<container_id>/memory.pressure_level level(low/medium/critical),mode(default/hierarchy/local)
     // memory/docker/<container_id>/memory.memsw.usage_in_bytes 104857600
-    
+
     // ecgMonitor.AddEventMonitor(argv[1], argv[2]);
-    ecgMonitor.AddPSIMonitor();
+    
+    // ecgMonitor.AddPSIMonitor();
+
     ecgMonitor.StartMonitor();
 
     return 0;

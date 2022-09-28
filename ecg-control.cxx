@@ -108,7 +108,7 @@ void Ecg_Control::Help(std::string &unUsed)
 {
     std::cout << "usage: ecg-control [<flags>]\n\n"
                 "-l show all cgroups\n"
-                "-q cgrp, show cgroup quality of service, adn calculate Qos score."
+                "-q cgrp, show cgroup quality of service, adn calculate Qos score.\n"
                 "-s cgrpfile=new value, set cgroup controller, eg: -s /cgroup/files/docker/files.limit=1\n"
                 "-g cgrp, get cgroup content, eg: -g /cgroup/files/docker\n"
                 "-c cgrp, create new cgroup, eg: -c /cgroup/files/test\n"

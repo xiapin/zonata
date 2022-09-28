@@ -95,13 +95,13 @@ public:
     int AddPSIMonitor(); // base on psi control file
     int AddEventMonitor(std::string controlFile, std::string args); // base on event control file
     void StartMonitor();
+    int MonitorCgroup(std::string cgrpPath, PSI_TYPE type, PRESSURE_LEVEL level);
 
     Ecg_Monitor() { }
     ~Ecg_Monitor() { }
 
 private:
     void ScanMonitorRoot();
-    int MonitorCgroup(std::string cgrpPath, PSI_TYPE type, PRESSURE_LEVEL level);
     void NewGroupListener();
     int BpfResultProc(char *buf, int size);
 
