@@ -28,7 +28,44 @@ public:
 
 std::vector<std::string> GetMetricsData_V1()
 {
-    return {};
+    std::vector<std::string> v;
+    std::string memSubsys;
+
+    v.emplace_back(M_HELP_PREFIX + m_helpInfo);
+    v.emplace_back(M_TYPE_PREFIX + GetMetricType());
+
+    auto cgrpRoots = Ecg_list::GetCgroupRoots();
+    for (auto item : cgrpRoots) {
+        if (strstr(item.c_str(), "memory")) {
+            memSubsys = std::move(item);
+            break;
+        }
+    }
+
+    if (memSubsys.empty()) {
+        std::cout << "CPU subsys not mounted, Ecg_GetCpuUsageMetric not support.\n";
+        return {};
+    }
+
+    auto allConts = Ecg_list::GetAllContainers();
+    std::map<std::string, std::vector<std::string>>::iterator it;
+
+    auto tmp = m_metricName + "{name=\"" + memSubsys + "\"} " +
+                Ecg::Fs_Utils::readFile(memSubsys + "/memory.usage_in_bytes");
+    v.emplace_back(tmp);
+    for (it = allConts.begin(); it != allConts.end(); it++) {
+        auto tmp = m_metricName + "{name=\"" + it->first + "\"} " +
+                Ecg::Fs_Utils::readFile(memSubsys + "/" + it->first + "/memory.usage_in_bytes");
+        v.emplace_back(tmp);
+
+        for (auto iter : it->second) {
+            tmp = m_metricName + "{name=\"" + iter + "\"} " +
+                Ecg::Fs_Utils::readFile(memSubsys + "/" + iter + "/memory.usage_in_bytes");
+            v.emplace_back(tmp);
+        }
+    }
+
+    return v;
 }
 
 std::vector<std::string> GetMetricsData_V2()

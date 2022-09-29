@@ -8,6 +8,52 @@
 namespace Ecg
 {
 
+class Top_Memory_Usage : public Top_Base {
+
+public:
+std::vector<std::string> Top()
+{
+    char tmp[256] = {0};
+    std::vector<std::string> v;
+    auto contList = Ecg_list::GetAllContainers();
+    std::map<std::string, std::vector<std::string>>::iterator iter;
+    std::string cgrpRoot = Ecg_list::GetCgrpMountPoint() + "/memory/";
+
+    snprintf(tmp, sizeof(tmp), "%-12.12s | %-12.12s", "Name", "Memory_Usage");
+    v.emplace_back(tmp);
+
+    for (iter = contList.begin(); iter != contList.end(); iter++) {
+        for (auto it : iter->second) {
+            snprintf(tmp, sizeof(tmp), "%-12.12s | %-12.12s",
+                Common_Utils::GetSplitString(it, '/', true).c_str(),
+                GetMemUsage_V1(cgrpRoot + it).c_str());
+            v.emplace_back(tmp);
+        }
+    }
+
+    return v;
+}
+
+bool Match(ECG_TOP_TYPE topType)
+{
+    return topType == TOP_MEM_USAGE;
+}
+
+bool Match(std::string topType)
+{
+    return !topType.compare("memory_usage") ||
+            !topType.compare("mem_usage");
+}
+
+private:
+std::string GetMemUsage_V1(std::string cgrp)
+{
+    return Fs_Utils::readFile(cgrp + "/memory.usage_in_bytes");
+}
+
+    std::map<std::string, std::string> m_grpsMem;
+};
+
 class CPU_Stat {
 public:
     CPU_Stat() {}
@@ -21,47 +67,47 @@ public:
 
 class Top_Cpu_Usage : public Top_Base {
 public:
-    std::vector<std::string> Top()
-    {
-        char tmp[256] = {0};
-        std::vector<std::string> topVec;
+std::vector<std::string> Top()
+{
+    char tmp[256] = {0};
+    std::vector<std::string> topVec;
 
-        auto allCont = Ecg_list::GetAllContainers();
-        std::map<std::string, std::vector<std::string>>::iterator iter;
+    auto allCont = Ecg_list::GetAllContainers();
+    std::map<std::string, std::vector<std::string>>::iterator iter;
 
-        m_allContStat.clear();
-        for (iter = allCont.begin(); iter != allCont.end(); iter++) {
-            m_allContStat.emplace_back(GetCpuStat(iter->first));
+    m_allContStat.clear();
+    for (iter = allCont.begin(); iter != allCont.end(); iter++) {
+        m_allContStat.emplace_back(GetCpuStat(iter->first));
 
-            for (auto item : iter->second) {
-                m_allContStat.emplace_back(GetCpuStat(item));
-            }
+        for (auto item : iter->second) {
+            m_allContStat.emplace_back(GetCpuStat(item));
         }
+    }
 
-        sort(m_allContStat.begin(), m_allContStat.end(), cmp);
+    sort(m_allContStat.begin(), m_allContStat.end(), cmp);
 
+    snprintf(tmp, sizeof(tmp), "%-12.12s | %-12.12s | %-12.12s | %-12.12s",
+            "Name", "Usage_usec", "User_usec", "Sys_usec");
+    topVec.emplace_back(tmp);
+    for (auto item : m_allContStat) {
         snprintf(tmp, sizeof(tmp), "%-12.12s | %-12.12s | %-12.12s | %-12.12s",
-                "Name", "Usage_usec", "User_usec", "Sys_usec");
+                item.m_contName.c_str(), item.m_usageUsec.c_str(),
+                item.m_usageUser.c_str(), item.m_usageSystem.c_str());
         topVec.emplace_back(tmp);
-        for (auto item : m_allContStat) {
-            snprintf(tmp, sizeof(tmp), "%-12.12s | %-12.12s | %-12.12s | %-12.12s",
-                    item.m_contName.c_str(), item.m_usageUsec.c_str(),
-                    item.m_usageUser.c_str(), item.m_usageSystem.c_str());
-            topVec.emplace_back(tmp);
-        }
-
-        return topVec;
     }
 
-    bool Match(ECG_TOP_TYPE topType)
-    {
-        return topType == TOP_CPU_USAGE;
-    }
+    return topVec;
+}
 
-    bool Match(std::string topType)
-    {
-        return !topType.compare("cpu_usage");
-    }
+bool Match(ECG_TOP_TYPE topType)
+{
+    return topType == TOP_CPU_USAGE;
+}
+
+bool Match(std::string topType)
+{
+    return !topType.compare("cpu_usage");
+}
 
 private:
     std::vector<CPU_Stat> m_allContStat;
@@ -93,7 +139,6 @@ private:
             cpuStat.m_contName = cgrp.substr(pos + 1, 16);
         }
 
-        // TODO: Change int to string
         cpuStat.m_usageUsec = Common_Utils::GetSplitString(stats.at(0), ' ', true);
         cpuStat.m_usageUser = Common_Utils::GetSplitString(stats.at(1), ' ', true);
         cpuStat.m_usageSystem = Common_Utils::GetSplitString(stats.at(2), ' ', true);
@@ -145,8 +190,10 @@ public:
     Win_TopSub()
     {
         Top_Cpu_Usage *cpuTop = new Top_Cpu_Usage;
+        Top_Memory_Usage *memTop = new Top_Memory_Usage;
 
         m_topBases.emplace_back(cpuTop);
+        m_topBases.emplace_back(memTop);
     }
     virtual ~Win_TopSub()
     {
