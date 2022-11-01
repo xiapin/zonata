@@ -1,0 +1,29 @@
+CFLAGS = -g3 -Wall
+LDFLAGS = -lpthread -levhtp -levent -lncurses
+COMPILE = g++ ${CFLAGS}
+
+all:
+	@rm -f ecg-base ecg-list ecg-monitor ecg-ne ecg-control
+	@${COMPILE} -DECG_BASE_TEST ecg-base.cxx -o ecg-base ${LDFLAGS}
+	@${COMPILE} -DECG_LIST_EXE ecg-base.cxx ecg-list.cxx -o ecg-list ${LDFLAGS}
+	@${COMPILE} ecg-list.cxx ecg-base.cxx ecg-monitor.cxx -o ecg-monitor ${LDFLAGS}
+	@${COMPILE} ecg-list.cxx ecg-base.cxx ecg-ne.cxx -o ecg-ne ${LDFLAGS}
+	@${COMPILE} ecg-base.cxx ecg-list.cxx ecg-control.cxx -o ecg-control ${LDFLAGS}
+	@${COMPILE} ecg-base.cxx ecg-list.cxx ecg-top.cxx -o ecg-top ${LDFLAGS}
+	@${COMPILE} ecg-base.cxx ecg-qos.cxx -o ecg-qos -lncurses
+ecg-base:
+	@${COMPILE} -DECG_BASE_TEST ecg-list.cxx ecg-base.cxx -o ecg-base ${LDFLAGS}
+ecg-list:
+	@${COMPILE} -DECG_LIST_EXE ecg-base.cxx ecg-list.cxx -o ecg-list ${LDFLAGS}
+ecg-monitor:
+	@${COMPILE} ecg-list.cxx ecg-base.cxx ecg-monitor.cxx -o ecg-monitor ${LDFLAGS}
+ecg-ne:
+	@${COMPILE} ecg-list.cxx ecg-base.cxx ecg-ne.cxx -o ecg-ne ${LDFLAGS}
+ecg-control:
+	@${COMPILE} ecg-base.cxx ecg-list.cxx ecg-control.cxx -o ecg-control ${LDFLAGS}
+ecg-top:
+	@${COMPILE} ecg-base.cxx ecg-list.cxx ecg-top.cxx -o ecg-top ${LDFLAGS}
+ecg-qos:
+	@${COMPILE} ecg-base.cxx ecg-qos.cxx -o ecg-qos -lncurses
+clean:
+	@rm -f ecg-base ecg-list ecg-monitor ecg-ne ecg-control ecg-top ecg-qos

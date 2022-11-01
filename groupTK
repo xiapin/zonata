@@ -1,0 +1,41 @@
+#!/bin/bash
+
+show_help()
+{
+    echo -e "Usage:    groupTK [COMMANDS] ARGS, COMMANDS:\n"
+    echo -e "list           : Show all avilable cgroups."
+    echo -e "top            : Sort cgroup resources and display."
+    echo -e "control        : Cgroup's behavior control directly."
+    echo -e "node_exporter  : Collect cgroup data and format as prometheus metrics."
+    echo -e "monitor        : Monitor the internal pressure of cgroup."
+    echo -e "qos            : Sevice quality score of specific cgroup."
+    echo -e "limit          : Prohibit cgroup's specified behavior, such as device access."
+}
+
+if [ $# -lt 1 ] ; then
+    show_help
+    exit 1
+fi
+
+COMMAND=$1
+shift
+
+ecg_path="/root/ecg"
+if [ $COMMAND = "list" ] ; then
+    exec $ecg_path/ecg-list $@
+elif [ $COMMAND = "control" ] ; then
+    exec $ecg_path/ecg-control $@
+elif [ $COMMAND = "top" ] ; then
+    exec $ecg_path/ecg-top $@
+elif [ $COMMAND = "node_exporter" ] ; then
+    exec $ecg_path/ecg-ne $@
+elif [ $COMMAND = "monitor" ] ; then
+    exec $ecg_path/ecg-monitor $@
+elif [ $COMMAND = "qos" ] ; then
+    exec $ecg_path/ecg-qos $@
+elif [ $COMMAND = "limit" ] ; then
+    exec $ecg_path/ecg-limit $@
+else
+    show_help
+    exit 1
+fi

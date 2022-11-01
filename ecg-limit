@@ -1,0 +1,31 @@
+#!/bin/bash
+
+help()
+{
+    echo "Usage: COMMANDS + Cgroup, COMMANDS:"
+    echo ""
+    echo "device    	: Cgroup device access control."
+    echo "sysctl    	: cgroup sysctl read/write control."
+    echo "sendmsg   	: cgroup socket access control."
+}
+
+if [ $# -lt 1 ] ; then
+    help
+    exit 1
+fi
+
+COMMANDS=$1
+shift
+
+exe_path="/root/samples/build"
+
+if [ $COMMANDS = "device" ] ; then
+    $exe_path/device $@
+elif [ $COMMANDS = "sysctl" ] ; then
+    $exe_path/sysctl $@
+elif [ $COMMANDS = "sendmsg" ] ; then
+    $exe_path/sendmsg $@
+else
+    help
+    exit 1
+fi
